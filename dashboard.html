@@ -1333,8 +1333,7 @@
             });
         }
     });
-    </script>
-    <script>
+    
     // Simple function to adjust AI results content display
     function displayAiResults(content, title) {
         const modal = document.getElementById('aiResultsModal');
@@ -1365,8 +1364,7 @@
             contentDiv.style.maxHeight = `${maxContentHeight}px`;
         }
     }
-    </script>
-    <script>
+
     // Handle window resize for responsive modal content
     window.addEventListener('resize', function() {
         const modal = document.getElementById('aiResultsModal');
@@ -1377,16 +1375,10 @@
             const maxContentHeight = viewportHeight * 0.6; // 60% of viewport
             contentDiv.style.maxHeight = `${maxContentHeight}px`;
         }
-    });
-    
-    // Set up modal behavior when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initial setup for modal content area
-        const contentDiv = document.getElementById('aiResultsContent');
-        if (contentDiv) {
-            const viewportHeight = window.innerHeight;
-            const maxContentHeight = viewportHeight * 0.6; // 60% of viewport
-            contentDiv.style.maxHeight = `${maxContentHeight}px`;
+        
+        // Also handle the other resize logic
+        if (!modal.classList.contains('hidden')) {
+            handleResultsContentSize();
         }
     });
     </script>

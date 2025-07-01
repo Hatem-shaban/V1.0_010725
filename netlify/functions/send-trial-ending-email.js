@@ -2,6 +2,29 @@ const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 exports.handler = async (event, context) => {
+    // Add CORS headers
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    };
+
+    // Handle preflight requests
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers
+        };
+    }
+
+    if (event.httpMethod !== 'POST') {
+        return { 
+            statusCode: 405, 
+            headers,
+            body: JSON.stringify({ error: 'Method Not Allowed' })
+        };
+    }
+
     try {
         const { email, userName = 'Valued Customer' } = JSON.parse(event.body);
 
@@ -38,12 +61,14 @@ exports.handler = async (event, context) => {
 
         return {
             statusCode: 200,
+            headers,
             body: JSON.stringify({ message: 'Trial ending email sent successfully' })
         };
     } catch (error) {
         console.error('Error sending trial ending email:', error);
         return {
             statusCode: error.code || 500,
+            headers,
             body: JSON.stringify({ error: 'Failed to send trial ending email' })
         };
     }

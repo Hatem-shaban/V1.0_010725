@@ -479,10 +479,10 @@
                 .join('');
         }
 
-        function scrollToPrice() {            document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+        function scrollToPrice() {
+            document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
         }
-          // LemonSqueezy is automatically initialized via the script tag
-    </script>    <script>
+        
         // Email Functions with improved error handling
         async function sendWelcomeEmail(userEmail, userName = 'New User') {
             try {
@@ -533,9 +533,8 @@
                 return false;
             }
         }
-    </script>
 
-    <script>        // Global notification function with improved styling and animation
+        // Global notification function with improved styling and animation
         window.showNotification = function(message, type = 'info') {
             const notification = document.createElement('div');
             
@@ -580,7 +579,8 @@
                     notification.remove();
                 }, 300);
             }, 3000);
-        };    </script>    <script>
+        };
+
     // Define these variables and functions in the global scope so they're accessible everywhere
     let isLoginMode = true;
       // Simplified tab switching function that only shows one tab at a time
@@ -676,10 +676,8 @@
     
     // Using the globally defined showNotification function
     const showNotification = window.showNotification;
-    </script>
 
-    <script>
-        // Error messages
+    // Error messages
     const ERROR_MESSAGES = {
         USER_NOT_FOUND: 'User not found. Please sign up.',
         EMAIL_EXISTS: 'Email already exists. Please log in.',

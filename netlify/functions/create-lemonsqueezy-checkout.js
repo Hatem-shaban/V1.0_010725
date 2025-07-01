@@ -41,15 +41,6 @@ exports.handler = async (event, context) => {
             throw new Error('Method not allowed');
         }
 
-        // Log environment variables status (without exposing actual values)
-        console.log('Environment check:', {
-            hasSupabaseUrl: !!process.env.SUPABASE_URL,
-            hasSupabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
-            hasLemonSqueezyApiKey: !!process.env.LEMONSQUEEZY_API_KEY,
-            hasLemonSqueezyStoreId: !!process.env.LEMONSQUEEZY_STORE_ID,
-            storeIdValue: process.env.LEMONSQUEEZY_STORE_ID // Safe to log the store ID
-        });
-
         const { customerEmail, userId, variantId } = JSON.parse(event.body);
 
         if (!customerEmail || !userId) {
@@ -72,12 +63,10 @@ exports.handler = async (event, context) => {
             userError = result.error;
             
             if (existingUser) {
-                console.log(`User found on attempt ${userRetry + 1}`);
                 break;
             }
             
             if (userRetry < maxUserRetries - 1) {
-                console.log(`User not found on attempt ${userRetry + 1}, retrying in ${(userRetry + 1) * 500}ms...`);
                 await new Promise(resolve => setTimeout(resolve, (userRetry + 1) * 500));
             }
         }
@@ -148,9 +137,6 @@ exports.handler = async (event, context) => {
             }
         };
 
-        console.log('Making LemonSqueezy API call with variant:', variantId);
-        console.log('Store ID:', process.env.LEMONSQUEEZY_STORE_ID);
-
         const response = await axios.post('https://api.lemonsqueezy.com/v1/checkouts', checkoutData, {
             headers: {
                 'Accept': 'application/vnd.api+json',
@@ -158,9 +144,6 @@ exports.handler = async (event, context) => {
                 'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`
             }
         });
-
-        console.log('LemonSqueezy API response status:', response.status);
-        console.log('LemonSqueezy API response data:', JSON.stringify(response.data, null, 2));
 
         const checkout = response.data.data;
 
