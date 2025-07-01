@@ -442,7 +442,18 @@
                 <label for="userName" class="block text-sm font-medium mb-2 text-white">Your Name</label>
                 <input type="text" id="userName" name="userName" 
                     class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
-            </div>            <button type="submit" id="authSubmitBtn" 
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium mb-2 text-white">Password</label>
+                <input type="password" id="password" name="password" required minlength="8"
+                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                <div id="passwordHelper" class="mt-1 text-xs text-gray-400" style="display: none;">
+                    Password must be at least 8 characters long
+                </div>
+            </div>
+
+            <button type="submit" id="authSubmitBtn" 
                 class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition duration-300 shadow-lg hover:shadow-purple-500/30 font-medium flex items-center justify-center">
                 <i id="loginBtnIcon" class="fas fa-sign-in-alt mr-2"></i>
                 <span id="loginBtnText">Log In</span>
@@ -457,7 +468,18 @@
     </div>
 </div>
 
-    <script>        function scrollToPrice() {            document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+    <script>        
+        // Simple password hashing function using Web Crypto API
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        function scrollToPrice() {            document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
         }
           // LemonSqueezy is automatically initialized via the script tag
     </script>    <script>
@@ -589,6 +611,7 @@
         safeUpdateElement('authTitle', el => el.textContent = isLoginMode ? 'Log In' : 'Sign Up');
         safeUpdateElement('loginBtnText', el => el.textContent = isLoginMode ? 'Log In' : 'Create Account');
         safeUpdateElement('nameField', el => el.style.display = isLoginMode ? 'none' : 'block');
+        safeUpdateElement('passwordHelper', el => el.style.display = !isLoginMode ? 'block' : 'none');
         
         // Update helper text visibility
         safeUpdateElement('loginHelper', el => el.style.display = isLoginMode ? 'inline' : 'none');
@@ -713,17 +736,25 @@
             
             const emailElement = document.getElementById('email');
             const userNameElement = document.getElementById('userName');
+            const passwordElement = document.getElementById('password');
             
-            if (!emailElement) {
-                console.error('Email input not found');
+            if (!emailElement || !passwordElement) {
+                console.error('Required form elements not found');
                 return;
             }
             
             const email = emailElement.value;
             const userName = userNameElement ? userNameElement.value : null;
+            const password = passwordElement.value;
             const submitButton = event.submitter;
             
             // Basic validation
+            if (!password || password.length < 8) {
+                showNotification('Password must be at least 8 characters long', 'warning');
+                passwordElement.focus();
+                return;
+            }
+            
             if (!isLoginMode && !userName) {
                 showNotification(ERROR_MESSAGES.NAME_REQUIRED, 'warning');
                 if (document.getElementById('userName')) {
@@ -757,8 +788,41 @@
                             showNotification('Email not found. Please sign up instead.', 'info');
                         } catch (e) {
                             console.error('Error switching to signup tab:', e);
+                            showNotification('Email not found. Please sign up instead.', 'info');
                         }
                         return;
+                    }
+                    
+                    // Verify password
+                    const passwordHash = await hashPassword(password);
+                    if (user.password_hash && user.password_hash !== passwordHash) {
+                        showNotification('Invalid email or password', 'error');
+                        return;
+                    }
+                    
+                    // If user doesn't have a password hash (old user), update it
+                    if (!user.password_hash) {
+                        const { error: updateError } = await window.StartupStack.supabase
+                            .from('users')
+                            .update({ 
+                                password_hash: passwordHash,
+                                last_login: new Date().toISOString()
+                            })
+                            .eq('id', user.id);
+                        
+                        if (updateError) {
+                            console.error('Error updating password:', updateError);
+                        }
+                    } else {
+                        // Update last login
+                        const { error: updateError } = await window.StartupStack.supabase
+                            .from('users')
+                            .update({ last_login: new Date().toISOString() })
+                            .eq('id', user.id);
+                        
+                        if (updateError) {
+                            console.error('Error updating last login:', updateError);
+                        }
                     }
     
                     // Store user data
@@ -767,12 +831,6 @@
                     if (user.name) {
                         localStorage.setItem('userName', user.name);
                     }
-    
-                    // Update last login time
-                    await window.StartupStack.supabase
-                        .from('users')
-                        .update({ last_login: new Date().toISOString() })
-                        .eq('id', user.id);
     
                     // Check subscription status
                     if (user.subscription_status === 'active') {
@@ -849,12 +907,16 @@
                         return;
                     }
                     
-                    // Create new user with name field
+                    // Hash the password before storing
+                    const passwordHash = await hashPassword(password);
+                    
+                    // Create new user with name field and password
                     const { data: newUser, error: createError } = await window.StartupStack.supabase
                         .from('users')
                         .insert([{
                             email: email,
                             name: userName,
+                            password_hash: passwordHash,
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                             subscription_status: 'pending',
