@@ -107,7 +107,8 @@ exports.handler = async (event, context) => {
                 planType = 'subscription'; // Fallback
         }
 
-        // Create LemonSqueezy checkout with minimal, correct structure
+        // Create LemonSqueezy checkout with redirect URLs
+        const baseUrl = process.env.URL || 'https://startupstackai.netlify.app';
         const checkoutData = {
             data: {
                 type: 'checkouts',
@@ -117,6 +118,17 @@ exports.handler = async (event, context) => {
                         custom: {
                             user_id: userId
                         }
+                    },
+                    checkout_options: {
+                        embed: false,
+                        media: false,
+                        logo: false
+                    },
+                    product_options: {
+                        enabled_variants: [variantId],
+                        redirect_url: `${baseUrl}/success.html?checkout_id={checkout_id}&user_id=${userId}`,
+                        receipt_button_text: "Go to Dashboard",
+                        receipt_link_url: `${baseUrl}/dashboard.html`
                     }
                 },
                 relationships: {

@@ -17,6 +17,8 @@
                 const checkoutId = params.get('checkout_id');
                 let userId = params.get('user_id') || localStorage.getItem('userId');
 
+                console.log('Success page loaded with:', { checkoutId, userId });
+
                 if (!checkoutId || !userId) {
                     throw new Error('Missing checkout or user information');
                 }
@@ -37,6 +39,7 @@
 
                 if (error) throw error;
 
+                console.log('Subscription activated for user:', userId);
                 statusDiv.innerHTML = 'Subscription activated successfully!';
                 localStorage.setItem('subscriptionActive', 'true');
 
@@ -49,6 +52,7 @@
                 console.error('Activation error:', error);
                 statusDiv.innerHTML = `Error: ${error.message}`;
                 
+                // Redirect to homepage with error after 3 seconds
                 setTimeout(() => {
                     window.location.replace('/?error=activation');
                 }, 3000);
