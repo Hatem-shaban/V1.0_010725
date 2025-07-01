@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activating Subscription - StartupStack</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+    <script type="module">
+        import startupStackPromise from './app.js';
+
+        async function activateSubscription() {
+            const statusDiv = document.getElementById('status');
+            try {
+                // Get checkout and user info from URL
+                const params = new URLSearchParams(window.location.search);
+                const checkoutId = params.get('checkout_id');
+                let userId = params.get('user_id') || localStorage.getItem('userId');
+
+                if (!checkoutId || !userId) {
+                    throw new Error('Missing checkout or user information');
+                }
+
+                statusDiv.innerHTML = 'Activating your subscription...';
+                const stack = await startupStackPromise;
+
+                // Simple update: mark user as active
+                const { data, error } = await stack.supabase
+                    .from('users')
+                    .update({ 
+                        subscription_status: 'active',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                statusDiv.innerHTML = 'Subscription activated successfully!';
+                localStorage.setItem('subscriptionActive', 'true');
+
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.replace('/dashboard.html');
+                }, 1500);
+
+            } catch (error) {
+                console.error('Activation error:', error);
+                statusDiv.innerHTML = `Error: ${error.message}`;
+                
+                setTimeout(() => {
+                    window.location.replace('/?error=activation');
+                }, 3000);
+            }
+        }
+
+        // Run activation when page loads
+        document.addEventListener('DOMContentLoaded', activateSubscription);
+    </script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+        <h1 class="text-2xl font-bold mb-4">Activating Your Subscription</h1>
+        <div id="status" class="text-gray-400">Initializing...</div>    </div>
+
+    <footer class="bg-gray-900 py-6 fixed bottom-0 w-full">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>&copy; 2025 StartupStack. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="terms.html" class="hover:text-white mx-2">Terms of Service</a>
+                <a href="privacy.html" class="hover:text-white mx-2">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,58 @@
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js", "axios"]
+
+[build.environment]
+  NODE_VERSION = "18"
+  # Database Configuration
+  SUPABASE_URL = ""
+  SUPABASE_ANON_KEY = ""
+  SUPABASE_SERVICE_ROLE_KEY = ""  # Required for bypassing RLS policies in serverless functions
+  
+  # Payment Processing
+  LEMONSQUEEZY_API_KEY = ""
+  LEMONSQUEEZY_STORE_ID = ""
+  
+  # Email Notifications
+  SENDGRID_API_KEY = ""
+  SENDGRID_FROM_EMAIL = ""
+  
+  # AI Integration - Must be set in Netlify environment variables
+  OPENAI_API_KEY = ""  # Create in OpenAI dashboard and add to Netlify environment
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://app.lemonsqueezy.com https://assets.lemonsqueezy.com https://cdn.lemonsqueezy.com https://cdn.jsdelivr.net https://esm.sh https://cdnjs.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+      img-src 'self' data: https://*;
+      connect-src 'self' https://*.supabase.co https://api.lemonsqueezy.com https://api.openai.com;
+      frame-src https://app.lemonsqueezy.com https://assets.lemonsqueezy.com https://cdn.lemonsqueezy.com;
+      font-src 'self' https://cdnjs.cloudflare.com;
+      worker-src 'self' blob:;
+    """
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"

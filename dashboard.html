@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StartupStack Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script type="module" src="app.js"></script>
+    <script>
+        // AI Tool Handler Functions - Global scope for onClick access
+          // Functions to show modal forms for each tool
+        function showBusinessNameGenerator() {
+            showToolModal('businessNameModal');
+        }
+        
+        function handleLogoGenerator() {
+            showToolModal('logoCreatorModal');
+        }
+        
+        function handlePitchDeckGenerator() {
+            showToolModal('pitchDeckModal');
+        }
+        
+        function handleMarketAnalysis() {
+            showToolModal('marketAnalysisModal');
+        }
+        
+        function handleContentCalendar() {
+            showToolModal('contentCalendarModal');
+        }
+        
+        function handleEmailTemplates() {
+            showToolModal('emailTemplatesModal');
+        }
+        
+        function handleLegalDocs() {
+            showToolModal('legalDocsModal');
+        }
+        
+        function handleFinancials() {
+            showToolModal('financialsModal');
+        }
+        
+        // Generic function to show tool modals
+        function showToolModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+        
+        // Generic function to close tool modals
+        function closeToolModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+        
+        // Function to handle form submissions for all AI tools
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up form handlers for all AI tool forms
+            const toolForms = document.querySelectorAll('form[data-tool]');
+            
+            toolForms.forEach(form => {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    // Get the tool name from the form's data attribute
+                    const toolName = this.getAttribute('data-tool');
+                    const toolTitle = this.closest('div.fixed').querySelector('h3').textContent;
+                    
+                    // Close the form modal
+                    const modalId = this.closest('div.fixed').id;
+                    closeToolModal(modalId);
+                    
+                    try {
+                        // Get form parameters
+                        const params = {};
+                        const inputs = this.querySelectorAll('input, textarea');
+                        inputs.forEach(input => {
+                            params[input.name] = input.value;
+                        });
+
+                        // Determine which parameters to use based on the tool
+                        let param1, param2, additionalParams = {};
+                        
+                        // Extract keywordsMore from params if exists
+                        const keywordsMore = params.keywordsMore;
+                        if (keywordsMore) {
+                            additionalParams.keywordsMore = keywordsMore;
+                        }
+                        
+                        // Extract additionalContext from params if exists
+                        const additionalContext = params.additionalContext;
+                        if (additionalContext) {
+                            additionalParams.additionalContext = additionalContext;
+                        }
+                        
+                        switch (toolName) {
+                            case 'generateBusinessNames':
+                                param1 = params.businessIndustry;
+                                param2 = params.businessKeywords;
+                                break;
+                            case 'generateLogo':
+                                param1 = params.logoStyle;
+                                param2 = params.logoIndustry;
+                                break;
+                            case 'generatePitchDeck':
+                                param1 = params.deckType;
+                                param2 = params.deckIndustry;
+                                break;
+                            case 'analyzeMarket':
+                                param1 = params.marketIndustry;
+                                param2 = params.marketRegion;
+                                break;
+                            case 'generateContentCalendar':
+                                param1 = params.calendarBusiness;
+                                param2 = params.calendarAudience;
+                                break;                            case 'generateEmailTemplates':
+                                param1 = params.emailBusiness;
+                                param2 = params.emailSequence;
+                                // Add the purpose parameter
+                                additionalParams = { purpose: params.emailPurpose };
+                                break;
+                            case 'generateLegalDocs':
+                                param1 = params.legalBusiness;
+                                param2 = params.legalDocType;
+                                break;
+                            case 'generateFinancials':
+                                param1 = params.financialBusiness;
+                                param2 = params.financialTimeframe;
+                                break;
+                            default:
+                                throw new Error('Unknown tool type');
+                        }
+                        
+                        // Show loading indicators
+                        document.body.classList.add('cursor-wait');
+                        
+                        // Show loading overlay
+                        const resultsModal = document.getElementById('aiResultsModal');
+                        const loadingIndicator = document.getElementById('loadingIndicator');
+                        const resultsContent = document.getElementById('aiResultsContent');
+                        
+                        if (resultsModal && loadingIndicator && resultsContent) {
+                            resultsModal.classList.remove('hidden');
+                            loadingIndicator.classList.remove('hidden');
+                            resultsContent.classList.add('hidden');
+                            document.getElementById('aiResultsTitle').textContent = 'Generating ' + toolTitle + '...';
+                        }
+                          // Call the appropriate AI function
+                        await window.StartupStack.aiTools[toolName](param1, param2, additionalParams);
+                        
+                        // Remove loading indicator
+                        document.body.classList.remove('cursor-wait');
+                        if (loadingIndicator && resultsContent) {
+                            loadingIndicator.classList.add('hidden');
+                            resultsContent.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        // Remove loading indicator
+                        document.body.classList.remove('cursor-wait');
+                        
+                        const loadingIndicator = document.getElementById('loadingIndicator');
+                        const resultsContent = document.getElementById('aiResultsContent');
+                        
+                        if (loadingIndicator && resultsContent) {
+                            loadingIndicator.classList.add('hidden');
+                            resultsContent.classList.remove('hidden');
+                            resultsContent.textContent = 'Error: ' + error.message;
+                        }
+                        
+                        // Show error notification
+                        alert('Error generating ' + toolTitle + ': ' + error.message);
+                    }
+                });
+            });
+        });
+    </script><style>
+        body {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #loadingOverlay {
+            opacity: 1;
+            transition: opacity 0.3s ease-out;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .user-profile:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .user-profile:hover #userEmail {
+            display: inline;
+        }
+        .plan-badge {
+            display: none;
+        }
+        .feature-disabled {
+            opacity: 0.6;
+            position: relative;
+        }
+        .feature-disabled::after {
+            content: "Upgrade Required";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        .feature-disabled button {
+            pointer-events: none;
+        }        /* PRO tag styles removed */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+                /* Minimal style for proper results scrolling */
+        #aiResultsContent {
+            scrollbar-width: thin;
+            scrollbar-color: #4f46e5 #1f2937;
+        }
+        #aiResultsContent::-webkit-scrollbar {
+            width: 6px;
+        }
+        #aiResultsContent::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        #aiResultsContent::-webkit-scrollbar-thumb {
+            background-color: #4f46e5;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="min-h-screen">
+        <nav class="bg-gray-800 p-4">
+            <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold">StartupStack Dashboard</h1>
+                    
+                    <!-- Plan badges with tooltips - shown/hidden based on plan type -->
+                    <div id="basicPlanBadge" class="plan-badge ml-4 bg-gray-600 text-xs px-2 py-1 rounded tooltip">
+                        Basic Plan
+                        <span class="tooltiptext">Access to basic tools only</span>
+                    </div>
+                    <div id="starterPlanBadge" class="plan-badge ml-4 bg-blue-600 text-xs px-2 py-1 rounded hidden tooltip">
+                        Starter Plan
+                        <span class="tooltiptext">Access to basic + premium tools</span>
+                    </div>
+                    <div id="proPlanBadge" class="plan-badge ml-4 bg-purple-600 text-xs px-2 py-1 rounded hidden tooltip">
+                        Pro Plan
+                        <span class="tooltiptext">Full access to all tools</span>
+                    </div>
+                    <div id="lifetimePlanBadge" class="plan-badge ml-4 bg-yellow-600 text-xs px-2 py-1 rounded hidden tooltip">
+                        Lifetime Pro
+                        <span class="tooltiptext">Permanent full access to all tools</span>
+                    </div>
+                </div>
+                  <!-- Add Profile/Logout Section -->
+                <div class="flex items-center space-x-4">                    <div class="text-gray-300 user-profile">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        <span id="userDisplayName" class="font-medium"></span>
+                        <span id="userEmail" class="text-xs text-gray-400 ml-1 hidden"></span>
+                    </div>
+                    <button onclick="handleLogout()" 
+                            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Upgrade Banner - Only visible for basic plan -->
+        <div id="upgradeBanner" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-4 hidden">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-3 md:mb-0">
+                    <i class="fas fa-star-half-alt text-yellow-300 mr-2"></i>
+                    <p>Unlock all premium features with our pro plan!</p>
+                </div>
+                <a href="/?upgrade=true" class="bg-white text-purple-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    Upgrade Now
+                </a>
+            </div>
+        </div>
+
+        <main class="max-w-7xl mx-auto px-4 py-8">            <!-- AI Results Modal -->
+            <div id="aiResultsModal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 overflow-y-auto">
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg max-w-3xl w-full shadow-2xl border border-gray-700">
+                        <div class="p-6 border-b border-gray-700">
+                            <div class="flex justify-between items-center">
+                                <h3 id="aiResultsTitle" class="text-2xl font-bold text-white flex items-center">
+                                    <i class="fas fa-lightbulb text-yellow-400 mr-3"></i>
+                                    <span>AI Results</span>
+                                </h3>
+                                <button onclick="closeAiResults()" class="text-gray-400 hover:text-white text-xl">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div id="loadingIndicator" class="hidden py-12 text-center">
+                                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 border-t-2 border-t-purple-300 mx-auto mb-6"></div>
+                                <p class="text-gray-300 text-lg">Generating creative results...</p>
+                            </div>
+                            
+                            <div id="aiResultsContent" class="bg-gray-900 p-6 rounded-lg max-h-96 overflow-y-auto text-white">
+                                <!-- Content will be inserted here dynamically -->
+                            </div>                        </div>                      <div class="p-6 border-t border-gray-700 flex justify-end">
+                            <button onclick="sendResultsEmail(); return false;" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 font-medium flex items-center mr-3 shadow-md hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5">
+                                <i class="fas fa-envelope mr-2"></i>
+                                Send to email
+                            </button>
+                            <button onclick="copyAiResults(); return false;" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 font-medium flex items-center mr-3 shadow-md hover:shadow-lg hover:shadow-blue-500/20 transform hover:-translate-y-0.5">
+                                <i class="fas fa-copy mr-2"></i>
+                                Copy to clipboard
+                            </button>
+                            <button onclick="closeAiResults()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center">
+                                <i class="fas fa-check mr-2"></i>
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+              <style>
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #1f2937;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #4f46e5;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #6366f1;
+                }
+                /* Improved modal and content scrolling */
+                #aiResultsModal {
+                    padding: 1rem 0;
+                    align-items: center;
+                }
+                #aiResultsContent {
+                    scrollbar-gutter: stable;
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    scroll-behavior: smooth;
+                    max-height: none;
+                }
+                
+                /* Enhanced content styling */
+                #aiResultsContent h3, #aiResultsContent .font-bold {
+                    color: #a78bfa;
+                    margin-top: 1rem;
+                    margin-bottom: 0.5rem;
+                    font-size: 1.25rem;
+                }
+                
+                #aiResultsContent .p-2.bg-gray-800, #aiResultsContent .p-2.bg-gray-700 {
+                    background: linear-gradient(to right, #1e293b, #334155);
+                    border-left: 3px solid #6366f1;
+                    padding: 0.75rem 1rem;
+                    margin: 0.5rem 0;
+                    border-radius: 0.375rem;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+                
+                #aiResultsContent p {
+                    margin-bottom: 0.75rem;
+                }
+                
+                /* Logo creator specific styling */
+                .logo-category {
+                    margin-top: 1.5rem;
+                    color: #c4b5fd;
+                    font-size: 1.25rem;
+                    font-weight: bold;
+                    border-bottom: 1px solid #4b5563;
+                    padding-bottom: 0.5rem;
+                }
+                
+                /* Additional styles for better result content formatting */
+                #aiResultsContent {
+                    white-space: pre-wrap;
+                }
+                
+                /* Style specific content types */
+                #aiResultsContent pre {
+                    background: rgba(26, 32, 44, 0.8);
+                    padding: 1rem;
+                    border-radius: 0.375rem;
+                    overflow-x: auto;
+                    white-space: pre;
+                    margin: 1rem 0;
+                    border: 1px solid rgba(74, 85, 104, 0.3);
+                }
+                
+                #aiResultsContent ul, #aiResultsContent ol {
+                    padding-left: 1.75rem;
+                    margin: 0.75rem 0;
+                }
+                
+                #aiResultsContent ul {
+                    list-style-type: disc;
+                }
+                
+                #aiResultsContent ol {
+                    list-style-type: decimal;
+                }
+                
+                #aiResultsContent a {
+                    color: #a78bfa;
+                    text-decoration: underline;
+                    text-decoration-thickness: 1px;
+                    text-underline-offset: 2px;
+                }
+                
+                #aiResultsContent a:hover {
+                    color: #c4b5fd;
+                }
+                
+                #aiResultsContent table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 1rem 0;
+                }
+                
+                #aiResultsContent th, #aiResultsContent td {
+                    border: 1px solid #4b5563;
+                    padding: 0.5rem;
+                    text-align: left;
+                }
+                
+                #aiResultsContent th {
+                    background-color: #1f2937;
+                }
+            </style><!-- Business Name Generator Form Modal -->
+            <div id="businessNameModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Business Name Generator</h3>
+                        <button onclick="closeToolModal('businessNameModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="businessNameForm" class="space-y-4" data-tool="generateBusinessNames">
+                        <div>
+                            <label for="businessIndustry" class="block text-sm font-medium mb-2 text-white">Industry</label>
+                            <input type="text" id="businessIndustry" name="businessIndustry" required
+                                placeholder="e.g., Technology, Healthcare, Finance"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="businessKeywords" class="block text-sm font-medium mb-2 text-white">Keywords (comma separated)</label>
+                            <input type="text" id="businessKeywords" name="businessKeywords" required
+                                placeholder="e.g., innovative, modern, sustainable"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="businessKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="businessKeywordsMore" name="keywordsMore" rows="2" 
+                                placeholder="Specific requirements, features, or characteristics..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="businessAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="businessAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('businessNameModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Names
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Logo Creator Form Modal -->
+            <div id="logoCreatorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Logo Creator</h3>
+                        <button onclick="closeToolModal('logoCreatorModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="logoCreatorForm" class="space-y-4" data-tool="generateLogo">
+                        <div>
+                            <label for="logoStyle" class="block text-sm font-medium mb-2 text-white">Logo Style</label>
+                            <input type="text" id="logoStyle" name="logoStyle" required
+                                placeholder="e.g., modern, vintage, minimalist"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="logoIndustry" class="block text-sm font-medium mb-2 text-white">Industry</label>
+                            <input type="text" id="logoIndustry" name="logoIndustry" required
+                                placeholder="e.g., technology, healthcare, finance"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="logoKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="logoKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific design elements, style preferences, or brand identity details..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                            
+                            <label for="logoAdditionalContext" class="block text-sm font-medium mt-4 mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="logoAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('logoCreatorModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Logo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Pitch Deck Form Modal -->
+            <div id="pitchDeckModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Pitch Deck Generator</h3>
+                        <button onclick="closeToolModal('pitchDeckModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="pitchDeckForm" class="space-y-4" data-tool="generatePitchDeck">
+                        <div>
+                            <label for="deckType" class="block text-sm font-medium mb-2 text-white">Deck Type</label>
+                            <input type="text" id="deckType" name="deckType" required
+                                placeholder="e.g., startup, investor, sales"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="deckIndustry" class="block text-sm font-medium mb-2 text-white">Industry</label>
+                            <input type="text" id="deckIndustry" name="deckIndustry" required
+                                placeholder="e.g., tech, healthcare, finance"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="deckKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="deckKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific slide requirements, messaging focus, or key metrics to highlight..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="deckAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="deckAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('pitchDeckModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Pitch Deck
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Market Analysis Form Modal -->
+            <div id="marketAnalysisModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Market Analysis</h3>
+                        <button onclick="closeToolModal('marketAnalysisModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="marketAnalysisForm" class="space-y-4" data-tool="analyzeMarket">
+                        <div>
+                            <label for="marketIndustry" class="block text-sm font-medium mb-2 text-white">Industry</label>
+                            <input type="text" id="marketIndustry" name="marketIndustry" required
+                                placeholder="e.g., SaaS, E-commerce, FinTech"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="marketRegion" class="block text-sm font-medium mb-2 text-white">Region</label>
+                            <input type="text" id="marketRegion" name="marketRegion" required
+                                placeholder="e.g., global, North America, Europe"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="marketKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="marketKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific market segments, competitor analysis, or market metrics to consider..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="marketAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="marketAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('marketAnalysisModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Analysis
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Content Calendar Form Modal -->
+            <div id="contentCalendarModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Content Calendar</h3>
+                        <button onclick="closeToolModal('contentCalendarModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="contentCalendarForm" class="space-y-4" data-tool="generateContentCalendar">
+                        <div>
+                            <label for="calendarBusiness" class="block text-sm font-medium mb-2 text-white">Business Type</label>
+                            <input type="text" id="calendarBusiness" name="calendarBusiness" required
+                                placeholder="e.g., startup, agency, retail"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="calendarAudience" class="block text-sm font-medium mb-2 text-white">Target Audience</label>
+                            <input type="text" id="calendarAudience" name="calendarAudience" required
+                                placeholder="e.g., tech professionals, millennials, parents"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="calendarKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="calendarKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific content themes, campaigns, or promotional events to include..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="calendarAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="calendarAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('contentCalendarModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Calendar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Email Templates Form Modal -->
+            <div id="emailTemplatesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Email Template Generator</h3>
+                        <button onclick="closeToolModal('emailTemplatesModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>                    <form id="emailTemplatesForm" class="space-y-4" data-tool="generateEmailTemplates">
+                        <div>
+                            <label for="emailPurpose" class="block text-sm font-medium mb-2 text-white">Email Purpose</label>
+                            <input type="text" id="emailPurpose" name="emailPurpose" required
+                                placeholder="e.g., conversion, engagement, retention"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="emailBusiness" class="block text-sm font-medium mb-2 text-white">Business Type</label>
+                            <input type="text" id="emailBusiness" name="emailBusiness" required
+                                placeholder="e.g., startup, ecommerce, agency"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="emailSequence" class="block text-sm font-medium mb-2 text-white">Sequence Type</label>
+                            <input type="text" id="emailSequence" name="emailSequence" required
+                                placeholder="e.g., welcome, onboarding, sales"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="emailKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="emailKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific tone, messaging elements, or calls-to-action to include..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="emailAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="emailAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('emailTemplatesModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Templates
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Legal Docs Form Modal -->
+            <div id="legalDocsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Legal Document Generator</h3>
+                        <button onclick="closeToolModal('legalDocsModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="legalDocsForm" class="space-y-4" data-tool="generateLegalDocs">
+                        <div>
+                            <label for="legalBusiness" class="block text-sm font-medium mb-2 text-white">Business Type</label>
+                            <input type="text" id="legalBusiness" name="legalBusiness" required
+                                placeholder="e.g., startup, SaaS, online store"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="legalDocType" class="block text-sm font-medium mb-2 text-white">Document Type</label>
+                            <input type="text" id="legalDocType" name="legalDocType" required
+                                placeholder="e.g., terms, privacy, EULA"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="legalKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="legalKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific legal clauses, provisions, or regulatory requirements to address..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="legalAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="legalAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('legalDocsModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Financial Projections Form Modal -->
+            <div id="financialsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full mx-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Financial Projections</h3>
+                        <button onclick="closeToolModal('financialsModal')" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="financialsForm" class="space-y-4" data-tool="generateFinancials">
+                        <div>
+                            <label for="financialBusiness" class="block text-sm font-medium mb-2 text-white">Business Type</label>
+                            <input type="text" id="financialBusiness" name="financialBusiness" required
+                                placeholder="e.g., startup, retail, service"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="financialTimeframe" class="block text-sm font-medium mb-2 text-white">Timeframe</label>
+                            <input type="text" id="financialTimeframe" name="financialTimeframe" required
+                                placeholder="e.g., 1year, 3year, 5year"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="financialKeywordsMore" class="block text-sm font-medium mb-2 text-white">Additional Specifications (optional)</label>
+                            <textarea id="financialKeywordsMore" name="keywordsMore" rows="2"
+                                placeholder="Specific revenue streams, expense categories, or growth scenarios to include..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="financialAdditionalContext" class="block text-sm font-medium mb-2 text-white">Additional Context (optional)</label>
+                            <textarea id="financialAdditionalContext" name="additionalContext" rows="2"
+                                placeholder="Any other context or information that might help..."
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"></textarea>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                            <button type="button" onclick="closeToolModal('financialsModal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Generate Projections
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">                <!-- Business Name Generator - Available on all plans -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">
+                    <button 
+                            onclick="showBusinessNameGenerator()"
+                            data-ai-tool
+                            disabled 
+                            class="w-full text-left">
+                        <i class="fas fa-lightbulb text-purple-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Business Name Generator</h3>
+                        <p class="text-gray-400">AI generates brandable names with domain availability check</p>
+                    </button>
+                </div>                <!-- Logo Creator - Available on all plans -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">
+                    <button onclick="handleLogoGenerator()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-palette text-blue-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Logo Creator</h3>
+                        <p class="text-gray-400">Professional logos in seconds with unlimited variations</p>
+                    </button>
+                </div>                <!-- Pitch Deck Templates - Premium feature (starter plan and above) -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer premium-feature">
+                    <button onclick="handlePitchDeckGenerator()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-chart-line text-green-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Pitch Deck Templates</h3>
+                        <p class="text-gray-400">50+ investor-ready templates with AI customization</p>
+                    </button>
+                </div>                <!-- Market Research Tool - Premium feature (starter plan and above) -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer premium-feature">
+                    <button onclick="handleMarketAnalysis()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-search text-yellow-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Market Research Tool</h3>
+                        <p class="text-gray-400">AI analyzes competitors and market opportunities</p>
+                    </button>
+                </div><!-- Content Planner - Premium feature (starter plan and above) -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer premium-feature">                    <button onclick="handleContentCalendar()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-calendar text-red-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Content Planner</h3>
+                        <p class="text-gray-400">30-day social media calendars generated by AI</p>
+                    </button>
+                </div>
+
+                <!-- Email Templates - Available on all plans -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">                    <button onclick="handleEmailTemplates()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-envelope text-indigo-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Email Templates</h3>
+                        <p class="text-gray-400">100+ proven email sequences for every situation</p>
+                    </button>
+                </div>                <!-- Legal Documents - Pro feature -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer pro-feature">                    <button onclick="handleLegalDocs()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-file-contract text-pink-400 text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Legal Documents</h3>
+                        <p class="text-gray-400">AI-generated contracts, terms, and privacy policies</p>
+                    </button>
+                </div>
+
+                <!-- Financial Projections - Pro feature -->
+                <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer pro-feature">                    <button onclick="handleFinancials()" 
+                            class="w-full text-left" data-ai-tool>
+                        <i class="fas fa-calculator text-white text-2xl mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Financial Projections</h3>
+                        <p class="text-gray-400">AI-powered revenue modeling and forecasting</p>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>    <script type="module">
+    import './app.js'; // Import for initialization only
+
+    let authCheckComplete = false;
+    let userPlanType = 'basic'; // Default plan type
+
+    async function checkAuth() {
+        try {
+            const userId = localStorage.getItem('userId');
+            const userEmail = localStorage.getItem('userEmail');
+            
+            if (!userId || !userEmail) {
+                window.location.replace('/?auth=required');
+                return;
+            }
+
+            // Wait for window.StartupStack to be available
+            if (!window.StartupStack) {
+                await new Promise(resolve => {
+                    const checkInterval = setInterval(() => {
+                        if (window.StartupStack) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            }
+
+            const { data: user, error } = await window.StartupStack.supabase
+                .from('users')
+                .select('id, email, name, subscription_status, plan_type')
+                .eq('id', userId)
+                .eq('email', userEmail)
+                .single();
+
+            if (error || !user) {
+                throw new Error('User verification failed');
+            }
+
+            if (user.subscription_status !== 'active') {
+                window.location.replace('/?subscription=required');
+                return;
+            }
+            
+            // Store plan type for dashboard customization
+            userPlanType = user.plan_type || 'basic';
+            
+            // Apply plan-specific UI customization
+            applyPlanSpecificUI(userPlanType);
+
+            // Show dashboard content with a smooth transition
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100); // Small delay to ensure smooth transition
+            
+            // Display user name if available, otherwise use email
+            const userName = localStorage.getItem('userName') || user.name;
+            const displayName = userName || userEmail.split('@')[0];
+            
+            document.getElementById('userDisplayName').textContent = displayName;
+            document.getElementById('userEmail').textContent = userEmail;            // Enable AI tools
+            document.querySelectorAll('[data-ai-tool]').forEach(button => {
+                button.disabled = false;
+                
+                // Add click tracking (only if not already added)
+                if (!button.hasAttribute('data-tracking-added')) {
+                    const originalOnClick = button.onclick;
+                    button.onclick = async function(e) {
+                        const toolName = button.closest('div').querySelector('h3').textContent;
+                        const userId = localStorage.getItem('userId');
+                        
+                        // Tool usage tracking removed
+                        // No tracking needed
+                        
+                        // Call the original onclick handler
+                        if (originalOnClick) {
+                            return originalOnClick.call(this, e);
+                        }
+                    };
+                    
+                    button.setAttribute('data-tracking-added', 'true');
+                }
+            });
+        } catch (error) {
+            console.error('Auth check error:', error);
+            // Ensure body is visible before redirecting
+            document.body.style.opacity = '1';
+            setTimeout(() => {
+                window.location.replace('/?auth=error');
+            }, 100);
+        }
+    }    // Apply UI customization based on plan type
+    function applyPlanSpecificUI(planType) {
+        // Hide plan badge containers first
+        document.querySelectorAll('.plan-badge').forEach(badge => {
+            badge.style.display = 'none';
+        });
+        
+        // Show the appropriate plan badge
+        const planBadge = document.getElementById(`${planType}PlanBadge`);
+        if (planBadge) planBadge.style.display = 'block';
+        
+        // Set plan-specific class on body
+        document.body.classList.add(`plan-${planType}`);
+        
+        // Handle upgrade banner visibility
+        const upgradeBanner = document.getElementById('upgradeBanner');
+        if (upgradeBanner) {
+            // Only show for basic and trial plans
+            if (planType === 'basic' || !planType) {
+                upgradeBanner.classList.remove('hidden');
+            } else {
+                upgradeBanner.classList.add('hidden');
+            }
+        }
+        
+        // Handle feature availability based on plan
+        const premiumFeatures = document.querySelectorAll('.premium-feature');
+        const proFeatures = document.querySelectorAll('.pro-feature');
+        
+        switch(planType) {
+            case 'lifetime':
+            case 'pro':
+                // All features available
+                premiumFeatures.forEach(el => {
+                    el.classList.remove('feature-disabled');
+                    const button = el.querySelector('button[data-ai-tool]');
+                    if (button) button.disabled = false;
+                });
+                proFeatures.forEach(el => {
+                    el.classList.remove('feature-disabled');
+                    const button = el.querySelector('button[data-ai-tool]');
+                    if (button) button.disabled = false;
+                });                // PRO badges have been removed
+                break;
+                
+            case 'starter':
+                // Only premium features are available, pro features are disabled
+                premiumFeatures.forEach(el => {
+                    el.classList.remove('feature-disabled');
+                    const button = el.querySelector('button[data-ai-tool]');
+                    if (button) button.disabled = false;
+                });
+                proFeatures.forEach(el => {
+                    el.classList.add('feature-disabled');
+                    const button = el.querySelector('button[data-ai-tool]');
+                    if (button) button.disabled = true;
+                });
+                break;
+                
+            default: // basic or trial
+                // All premium and pro features are disabled
+                premiumFeatures.forEach(el => {
+                    el.classList.add('feature-disabled');
+                    const button = el.querySelector('button[data-ai-tool]');
+                    if (button) button.disabled = true;
+                });
+                proFeatures.forEach(el => {
+                    el.classList.add('feature-disabled');
+                    const button = el.querySelector('button[data-ai-tool]');
+                    if (button) button.disabled = true;
+                });
+                break;
+        }
+          // Analytics tracking removed
+        // No tracking needed
+    }
+
+    // Global logout handler
+    window.handleLogout = function() {
+        localStorage.clear();
+        window.location.href = '/?logout=success';
+    };
+
+    // Add loading indicator
+    document.body.insertAdjacentHTML('afterbegin', `
+        <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                <p class="mt-4 text-white">Loading dashboard...</p>
+            </div>
+        </div>
+    `);
+
+    // Run auth check and gracefully fade out loading overlay
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await checkAuth();
+        } finally {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300); // Match transition duration
+            }
+        }
+    });
+    </script>
+
+    <script>    // Simple function to close AI results modal
+    function closeAiResults() {
+        const modal = document.getElementById('aiResultsModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+      // Function to copy AI results to clipboard
+    function copyAiResults() {
+        const resultsContent = document.getElementById('aiResultsContent');
+        if (resultsContent) {
+            // Create a text representation of the content
+            const textContent = resultsContent.innerText || resultsContent.textContent;
+              // Use the clipboard API to copy the content
+            navigator.clipboard.writeText(textContent)
+                .then(() => {
+                    // Show a temporary success message with enhanced animation
+                    const copyBtn = document.querySelector('button[onclick="copyAiResults()"]');
+                    if (copyBtn) {
+                        const originalText = copyBtn.innerHTML;
+                        const originalClasses = copyBtn.className;
+                        
+                        // Add success styles and animate
+                        copyBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Copied!';
+                        copyBtn.className = 'bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg transition-all duration-300 font-medium flex items-center mr-3 shadow-md shadow-green-500/20 transform scale-105';
+                        
+                        // Reset button text and styles after 2 seconds
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalText;
+                            copyBtn.className = originalClasses;
+                        }, 2000);
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy to clipboard. Please try again.');
+                });
+        }
+    }
+      // Function to send AI results to user's email
+    async function sendResultsEmail() {
+        const resultsContent = document.getElementById('aiResultsContent');
+        // Fix: Get the title text safely with a fallback
+        let resultsTitle = "AI Results";
+        const titleElement = document.getElementById('aiResultsTitle');
+        if (titleElement) {
+            // Try to get text from span if it exists, otherwise use the full innerText
+            const titleSpan = titleElement.querySelector('span');
+            if (titleSpan && titleSpan.textContent) {
+                resultsTitle = titleSpan.textContent;
+            } else if (titleElement.innerText) {
+                // Remove any icons/non-text content by getting inner text
+                resultsTitle = titleElement.innerText;
+            }
+        }
+        
+        if (resultsContent) {
+            // Get email from local storage or session (it's saved during auth)
+            const userEmail = localStorage.getItem('userEmail');
+            
+            if (!userEmail) {
+                alert('Please log in to send results to your email.');
+                return;
+            }
+            
+            // Get the content
+            const textContent = resultsContent.innerText || resultsContent.textContent;
+            
+            // Show sending state
+            const emailBtn = document.querySelector('button[onclick="sendResultsEmail(); return false;"]');
+            if (emailBtn) {
+                const originalText = emailBtn.innerHTML;
+                emailBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+                emailBtn.disabled = true;
+                
+                try {
+                    // Call the serverless function to send the email
+                    const response = await fetch('/.netlify/functions/send-results-email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: userEmail,
+                            content: textContent,
+                            subject: `StartupStack AI Results: ${resultsTitle}`
+                        })
+                    });
+                    
+                    const data = await response.json();
+                      if (response.ok) {
+                        // Success state with enhanced animation
+                        const originalClasses = emailBtn.className;
+                        emailBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Sent!';
+                        emailBtn.className = 'bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg transition-all duration-300 font-medium flex items-center mr-3 shadow-md shadow-green-500/20 transform scale-105';
+                        
+                        // Reset button text and styles after 2 seconds
+                        setTimeout(() => {
+                            emailBtn.innerHTML = originalText;
+                            emailBtn.className = originalClasses;
+                            emailBtn.disabled = false;
+                        }, 2000);
+                    } else {
+                        throw new Error(data.error || 'Failed to send email');
+                    }
+                } catch (error) {
+                    console.error('Email sending error:', error);
+                    alert('Failed to send email. Please try again later.');
+                    emailBtn.innerHTML = originalText;
+                    emailBtn.disabled = false;
+                }
+            }
+        }
+    }
+    </script>
+
+    <footer class="bg-gray-900 py-6 mt-16">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>&copy; 2025 StartupStack. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="terms.html" class="hover:text-white mx-2">Terms of Service</a>
+                <a href="privacy.html" class="hover:text-white mx-2">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+    <script>
+    // Function to properly size the AI results content
+    function handleResultsContentSize() {
+        const modal = document.getElementById('aiResultsModal');
+        const content = document.getElementById('aiResultsContent');
+        const modalBox = modal.querySelector('div'); // The modal inner container
+        
+        // Only run if modal is visible
+        if (modal && !modal.classList.contains('hidden') && content) {
+            // Allow content to take available space
+            const viewportHeight = window.innerHeight;
+            const modalPadding = 32; // 2rem (p-8)
+            const headerHeight = modal.querySelector('div > div:first-child').offsetHeight;
+            const footerHeight = modal.querySelector('div > div:last-child').offsetHeight;
+            
+            // Calculate maximum available height
+            const maxAvailableHeight = viewportHeight - headerHeight - footerHeight - (modalPadding * 2) - 40;
+            
+            // Set max height dynamically
+            content.style.maxHeight = `${maxAvailableHeight}px`;
+        }
+    }
+
+    // Set up event listeners for modal events
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('aiResultsModal');
+        
+        if (modal) {
+            // Observer to detect when modal becomes visible
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        if (!modal.classList.contains('hidden')) {
+                            handleResultsContentSize();
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(modal, { attributes: true });
+            
+            // Also handle resize events
+            window.addEventListener('resize', function() {
+                if (!modal.classList.contains('hidden')) {
+                    handleResultsContentSize();
+                }
+            });
+        }
+    });
+    </script>
+    <script>
+    // Simple function to adjust AI results content display
+    function displayAiResults(content, title) {
+        const modal = document.getElementById('aiResultsModal');
+        const contentDiv = document.getElementById('aiResultsContent');
+        const titleElement = document.getElementById('aiResultsTitle');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        
+        if (modal && contentDiv && titleElement) {
+            // Update content
+            contentDiv.innerHTML = content;
+            
+            // Update title if provided
+            if (title) {
+                titleElement.querySelector('span').textContent = title;
+            }
+            
+            // Hide loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.classList.add('hidden');
+            }
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            
+            // Adjust for viewport height
+            const viewportHeight = window.innerHeight;
+            const maxContentHeight = viewportHeight * 0.6; // 60% of viewport
+            contentDiv.style.maxHeight = `${maxContentHeight}px`;
+        }
+    }
+    </script>
+    <script>
+    // Handle window resize for responsive modal content
+    window.addEventListener('resize', function() {
+        const modal = document.getElementById('aiResultsModal');
+        const contentDiv = document.getElementById('aiResultsContent');
+        
+        if (modal && !modal.classList.contains('hidden') && contentDiv) {
+            const viewportHeight = window.innerHeight;
+            const maxContentHeight = viewportHeight * 0.6; // 60% of viewport
+            contentDiv.style.maxHeight = `${maxContentHeight}px`;
+        }
+    });
+    
+    // Set up modal behavior when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial setup for modal content area
+        const contentDiv = document.getElementById('aiResultsContent');
+        if (contentDiv) {
+            const viewportHeight = window.innerHeight;
+            const maxContentHeight = viewportHeight * 0.6; // 60% of viewport
+            contentDiv.style.maxHeight = `${maxContentHeight}px`;
+        }
+    });
+    </script>
+</body>
+</html>
