@@ -249,6 +249,32 @@
             visibility: visible;
             opacity: 1;
         }
+        
+        /* Enhanced Logo Animations */
+        .logo-container:hover .fas.fa-brain {
+            animation: brainPulse 2s ease-in-out infinite;
+        }
+        .logo-container:hover .fas.fa-rocket {
+            animation: rocketBoost 1.5s ease-in-out infinite;
+        }
+        .logo-container:hover .animate-pulse {
+            animation: neuralSync 1s ease-in-out infinite;
+        }
+        
+        @keyframes brainPulse {
+            0%, 100% { transform: scale(1); color: rgb(168 85 247); }
+            50% { transform: scale(1.1); color: rgb(219 39 119); }
+        }
+        
+        @keyframes rocketBoost {
+            0%, 100% { transform: rotate(12deg) translateY(0); }
+            50% { transform: rotate(12deg) translateY(-2px); }
+        }
+        
+        @keyframes neuralSync {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
                 /* Minimal style for proper results scrolling */
         #aiResultsContent {
             scrollbar-width: thin;
@@ -271,7 +297,25 @@
         <nav class="bg-gray-800 p-4">
             <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold">StartupStack Dashboard</h1>
+                    <div class="text-2xl font-bold flex items-center logo-container">
+                        <div class="relative mr-3">
+                            <!-- Neural network nodes -->
+                            <div class="flex items-center space-x-1">
+                                <div class="w-2 h-2 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse"></div>
+                                <div class="w-1 h-1 bg-purple-300 rounded-full"></div>
+                                <div class="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-pulse" style="animation-delay: 0.3s"></div>
+                            </div>
+                            <!-- Connection lines -->
+                            <div class="absolute top-1 left-0 w-full h-px bg-gradient-to-r from-purple-400 to-blue-400 opacity-50"></div>
+                            <!-- AI Brain icon -->
+                            <i class="fas fa-brain text-lg text-purple-400 absolute -top-1 -left-1 opacity-80"></i>
+                            <!-- Startup rocket -->
+                            <i class="fas fa-rocket text-sm text-pink-400 absolute -top-2 -right-1 transform rotate-12"></i>
+                        </div>
+                        <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">StartupStack</span>
+                        <span class="text-xs text-purple-300 ml-1 font-normal">AI</span>
+                    </div>
+                    <span class="text-lg text-gray-400 ml-3">Dashboard</span>
                     
                     <!-- Plan badges with tooltips - shown/hidden based on plan type -->
                     <div id="basicPlanBadge" class="plan-badge ml-4 bg-gray-600 text-xs px-2 py-1 rounded tooltip">
