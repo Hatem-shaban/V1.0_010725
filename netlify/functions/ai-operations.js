@@ -128,7 +128,6 @@ exports.handler = async (event, context) => {
             
             // Get settings for this operation or use defaults
             const settings = operationSettings[operation] || { temperature: 0.7, max_tokens: 500 };
-              console.log(`Making OpenAI request for operation: ${operation}`);
             completion = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
@@ -138,7 +137,6 @@ exports.handler = async (event, context) => {
                 temperature: settings.temperature,
                 max_tokens: settings.max_tokens
             });
-            console.log(`OpenAI request completed successfully for operation: ${operation}`);
             
             // Extract the result from completion
             const result = completion.choices[0].message.content;
@@ -198,11 +196,6 @@ exports.handler = async (event, context) => {
         
         // Variable to track content saving status
         const result = completion.choices[0].message.content.trim();
-        console.log(`Got result from OpenAI (length: ${result.length} chars)`);
-        // Log first 50 chars for debugging
-        console.log(`Result preview: ${result.substring(0, 50)}...`);
-          // Log successful completion before returning
-        console.log(`Successfully completed operation: ${operation}`);
         
         // Prepare the response JSON
         const responseBody = {

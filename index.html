@@ -842,12 +842,9 @@
                     
                     // Create checkout session with better error handling
                     try {
-                        console.log('Creating checkout for existing user:', user.id, 'email:', email);
-                        
                         // Ensure we have a variant ID set
                         const currentVariantId = localStorage.getItem('selectedVariantId');
                         if (!currentVariantId) {
-                            console.log('No variant ID found, setting default to Pro plan');
                             localStorage.setItem('selectedVariantId', '877605'); // Default to Pro plan
                         }
                         
@@ -878,7 +875,6 @@
                             throw new Error('Invalid checkout response received');
                         }
                         
-                        console.log('Redirecting to:', checkoutData.checkout_url);
                         window.location.href = checkoutData.checkout_url;
                     } catch (checkoutError) {
                         console.error('Checkout error:', checkoutError);
