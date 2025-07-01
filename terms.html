@@ -42,7 +42,7 @@
 <body class="min-h-screen flex flex-col">
     <header class="bg-gray-900 shadow-lg">
         <div class="container mx-auto px-4 py-6 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-bold text-white flex items-center logo-container">
+            <a href="#" onclick="smartRedirect()" class="text-2xl font-bold text-white flex items-center logo-container">
                 <div class="relative mr-3">
                     <!-- Neural network nodes -->
                     <div class="flex items-center space-x-1">
@@ -61,7 +61,7 @@
                 <span class="text-xs text-purple-300 ml-1 font-normal">AI</span>
             </a>
             <nav>
-                <a href="index.html" class="text-white hover:text-purple-400 ml-6 transition-colors duration-300">
+                <a href="#" onclick="smartRedirect()" class="text-white hover:text-purple-400 ml-6 transition-colors duration-300">
                     <i class="fas fa-home mr-1"></i> Home
                 </a>
             </nav>
@@ -139,5 +139,22 @@
             </div>
         </div>
     </footer>
+    
+    <script>
+        // Smart redirect function - checks authentication and redirects appropriately
+        function smartRedirect() {
+            // Check if user is logged in by checking localStorage
+            const userId = localStorage.getItem('userId');
+            const subscriptionActive = localStorage.getItem('subscriptionActive');
+            
+            if (userId) {
+                // User is authenticated, redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                // User is not authenticated, redirect to index
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
 </body>
 </html>
