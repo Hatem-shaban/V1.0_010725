@@ -878,6 +878,30 @@
                         window.location.replace('/dashboard.html');
                         return;
                     }
+
+                    // Handle free trial users
+                    if (user.subscription_status === 'free_trial') {
+                        // Check if trial was created today (same UTC day)
+                        const userCreatedDate = new Date(user.created_at);
+                        const today = new Date();
+                        
+                        const userCreatedUTC = userCreatedDate.toISOString().split('T')[0];
+                        const todayUTC = today.toISOString().split('T')[0];
+                        
+                        if (userCreatedUTC === todayUTC) {
+                            // Same day - redirect to dashboard
+                            showNotification('Welcome back to your free trial!', 'success');
+                            window.location.replace('/dashboard.html');
+                            return;
+                        } else {
+                            // Different day - trial expired, redirect to pricing
+                            showNotification('Your free trial has ended. Please choose a subscription plan.', 'info');
+                            closeAuthModal();
+                            // Scroll to pricing section on current page
+                            document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+                            return;
+                        }
+                    }
     
                     // If subscription is pending or has an issue, redirect to checkout
                     showNotification('Please complete your subscription to continue', 'info');
