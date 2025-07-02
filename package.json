@@ -16,6 +16,18 @@
   },
   "scripts": {
     "dev": "netlify dev",
-    "build": "npm install"
-  }
+    "build": "npm ci --only=production",
+    "start": "netlify dev",
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "optimize": "npm audit fix --force"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
 }

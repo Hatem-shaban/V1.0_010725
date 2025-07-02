@@ -5,10 +5,13 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["@supabase/supabase-js", "axios"]
+  external_node_modules = ["@supabase/supabase-js", "axios", "openai"]
+  # Optimize function performance
+  included_files = ["netlify/functions/**"]
 
 [build.environment]
   NODE_VERSION = "18"
+  NODE_OPTIONS = "--max_old_space_size=1024"
   # Database Configuration
   SUPABASE_URL = ""
   SUPABASE_ANON_KEY = ""
@@ -24,12 +27,20 @@
   # AI Integration - Must be set in Netlify environment variables
   OPENAI_API_KEY = ""  # Create in OpenAI dashboard and add to Netlify environment
 
+# Performance Headers
 [[headers]]
   for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type"
+    # Cache static assets
+    Cache-Control = "public, max-age=31536000, immutable"
+    # Enable compression
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
     Content-Security-Policy = """
       default-src 'self';
       script-src 'self' 'unsafe-inline' https://app.lemonsqueezy.com https://assets.lemonsqueezy.com https://cdn.lemonsqueezy.com https://cdn.jsdelivr.net https://esm.sh https://cdnjs.cloudflare.com;
@@ -40,6 +51,39 @@
       font-src 'self' https://cdnjs.cloudflare.com;
       worker-src 'self' blob:;
     """
+
+# Cache CSS and JS files longer
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache images
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Optimize HTML pages
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600" # 1 hour
 
 [[redirects]]
   from = "/*"

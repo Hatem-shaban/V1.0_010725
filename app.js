@@ -9,6 +9,8 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 class UserManager {
     constructor(supabase) {
         this.supabase = supabase;
+        this.userCache = new Map(); // Add caching
+        this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
     }
 
     async signUp(email) {
@@ -43,7 +45,7 @@ class UserManager {
         }
     }
 
-    // Store user operation history in Supabase
+    // Store user operation history in Supabase with caching
     async storeOperationHistory(userId, operation, params, result) {
         try {        if (!userId) {
             return;
@@ -59,12 +61,45 @@ class UserManager {
                     created_at: new Date().toISOString()
                 });
 
+            // Clear user cache when new operation is stored
+            this.userCache.delete(`user_${userId}`);
+
             if (error) {
                 // Silent fail for operation history storage
             }
         } catch (error) {
             // Silent fail for operation history storage
             // Non-blocking - we don't want to interrupt the main flow if storage fails
+        }
+    }
+
+    // Get user with caching
+    async getUser(userId) {
+        const cacheKey = `user_${userId}`;
+        const cached = this.userCache.get(cacheKey);
+        
+        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+            return cached.data;
+        }
+
+        try {
+            const { data, error } = await this.supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (!error && data) {
+                this.userCache.set(cacheKey, {
+                    data,
+                    timestamp: Date.now()
+                });
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error getting user:', error);
+            return null;
         }
     }
 }
@@ -145,14 +180,17 @@ class StartupStackAI {
             
             // Usage limits are now enforced server-side for better security
             
-            // Implement a simple retry mechanism
+            // Implement a simple retry mechanism with exponential backoff
             let attempts = 0;
-            const maxAttempts = 3;
+            const maxAttempts = 2; // Reduced from 3 for faster failures
             let response;
             let data;
             
             while (attempts < maxAttempts) {
                 try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 12000); // Reduced from 15s
+                    
                     response = await fetch('/.netlify/functions/ai-operations', {
                         method: 'POST',
                         headers: {
@@ -163,10 +201,10 @@ class StartupStackAI {
                             params,
                             userId // Pass userId to serverless function
                         }),
-                        // Add timeout to prevent hanging requests
-                        signal: AbortSignal.timeout(15000) // 15 seconds timeout
+                        signal: controller.signal
                     });
                     
+                    clearTimeout(timeoutId);
                     data = await response.json();
                     
                     // Handle free trial limits silently (no console errors)

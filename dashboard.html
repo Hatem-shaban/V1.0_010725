@@ -4,9 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StartupStack Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script type="module" src="app.js"></script>
+    
+    <!-- Preconnect for faster loading -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//ygnrdquwnafkbkxirtae.supabase.co">
+    
+    <!-- Optimized CSS loading -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    </noscript>
+    <script type="module" src="app.js" async></script>
+    <script src="performance-monitor.js" defer></script>
     <script>
         // AI Tool Handler Functions - Global scope for onClick access
           // Functions to show modal forms for each tool
@@ -323,10 +335,12 @@
             0%, 100% { opacity: 0.6; transform: scale(1); }
             50% { opacity: 1; transform: scale(1.2); }
         }
-                /* Minimal style for proper results scrolling */
+        /* Enhanced content styling with GPU acceleration */
         #aiResultsContent {
             scrollbar-width: thin;
             scrollbar-color: #4f46e5 #1f2937;
+            transform: translateZ(0); /* Force hardware acceleration */
+            will-change: scroll-position;
         }
         #aiResultsContent::-webkit-scrollbar {
             width: 6px;
@@ -337,6 +351,21 @@
         #aiResultsContent::-webkit-scrollbar-thumb {
             background-color: #4f46e5;
             border-radius: 20px;
+        }
+        
+        /* Optimize modal transitions */
+        .modal-container {
+            transform: translateZ(0);
+            will-change: transform, opacity;
+        }
+        
+        /* Reduce animation complexity for better performance */
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
     </style>
 </head>

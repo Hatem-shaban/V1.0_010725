@@ -2,7 +2,42 @@
 const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
+// Create persistent connections
+let supabase;
+let openai;
+
+// Initialize connections once
+function initializeConnections() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
+            {
+                auth: {
+                    persistSession: false
+                },
+                global: {
+                    headers: {
+                        'x-application': 'startupstack-ai'
+                    }
+                }
+            }
+        );
+    }
+    
+    if (!openai && process.env.OPENAI_API_KEY) {
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+            timeout: 30000,
+            maxRetries: 2
+        });
+    }
+}
+
 exports.handler = async (event, context) => {
+    // Set longer timeout for AI operations
+    context.callbackWaitsForEmptyEventLoop = false;
+    
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
@@ -137,18 +172,13 @@ exports.handler = async (event, context) => {
         }
         
         // Initialize OpenAI client when needed
-        let openai;
-        try {
-            openai = new OpenAI({
-                // apiKey will automatically use process.env.OPENAI_API_KEY if not specified
-                timeout: 30000, // 30 seconds timeout
-                maxRetries: 3   // Automatic retries on certain errors
-            });
-        } catch (initError) {
+        initializeConnections();
+        
+        if (!openai) {
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'Failed to initialize OpenAI client' })
+                body: JSON.stringify({ error: 'Server configuration error: API key not available' })
             };
         }
         
@@ -246,13 +276,13 @@ exports.handler = async (event, context) => {
             }
             
             completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-3.5-turbo-0125", // Use faster model variant
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt }
                 ],
-                temperature: settings.temperature,
-                max_tokens: settings.max_tokens
+                temperature: 0.7,
+                max_tokens: 600 // Reduced for faster responses
             });
             
             // Validate completion response

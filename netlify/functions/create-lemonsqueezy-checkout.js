@@ -1,7 +1,28 @@
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
+// Create persistent connection
+let supabase;
+
+function initializeSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
+            {
+                auth: {
+                    persistSession: false
+                }
+            }
+        );
+    }
+    return supabase;
+}
+
 exports.handler = async (event, context) => {
+    // Optimize for serverless
+    context.callbackWaitsForEmptyEventLoop = false;
+    
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
@@ -27,15 +48,7 @@ exports.handler = async (event, context) => {
         }
 
         // Initialize Supabase with service role key to bypass RLS
-        const supabase = createClient(
-            process.env.SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
-            {
-                auth: {
-                    persistSession: false
-                }
-            }
-        );
+        const supabase = initializeSupabase();
 
         if (event.httpMethod !== 'POST') {
             throw new Error('Method not allowed');
