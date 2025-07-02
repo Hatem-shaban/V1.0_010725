@@ -176,10 +176,8 @@ class StartupStackAI {
             const userId = localStorage.getItem('userId');
             console.log('Retrieved userId from localStorage:', userId);
             
-            // Check if user is on free trial and has usage limits
-            console.log('About to check usage limits...');
-            await this.checkUsageLimits(userId, operation);
-            console.log('Usage limits check passed, proceeding with operation...');
+            // Usage limits are now enforced server-side for better security
+            console.log('Proceeding with operation (server-side usage limits will apply)...');
             
             // Implement a simple retry mechanism
             let attempts = 0;

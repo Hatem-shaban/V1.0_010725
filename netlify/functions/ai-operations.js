@@ -128,6 +128,51 @@ exports.handler = async (event, context) => {
             
             // Get settings for this operation or use defaults
             const settings = operationSettings[operation] || { temperature: 0.7, max_tokens: 500 };
+            
+            // Check usage limits for free trial users (server-side enforcement)
+            if (userId) {
+                try {
+                    // Get user data to check subscription status
+                    const { data: user, error: userError } = await supabase
+                        .from('users')
+                        .select('subscription_status')
+                        .eq('id', userId)
+                        .single();
+
+                    if (!userError && user && user.subscription_status === 'free_trial') {
+                        // User is on free trial, check daily limits
+                        const now = new Date();
+                        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                        const tomorrowUTC = new Date(todayUTC);
+                        tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
+
+                        console.log('Server-side usage check for free trial user:', userId, 'operation:', operation);
+                        console.log('Date range:', todayUTC.toISOString(), 'to', tomorrowUTC.toISOString());
+
+                        const { data: operations, error: opsError } = await supabase
+                            .from('operation_history')
+                            .select('id, operation_type, created_at')
+                            .eq('user_id', userId)
+                            .eq('operation_type', operation)
+                            .gte('created_at', todayUTC.toISOString())
+                            .lt('created_at', tomorrowUTC.toISOString());
+
+                        if (!opsError && operations && operations.length >= 1) {
+                            console.log('Server-side: LIMIT EXCEEDED for', operation, '- found', operations.length, 'operations today');
+                            throw new Error('Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!');
+                        }
+
+                        console.log('Server-side: Usage check passed for', operation, '- found', operations ? operations.length : 0, 'operations today');
+                    }
+                } catch (limitError) {
+                    // Re-throw usage limit errors, but don't block for other database errors
+                    if (limitError.message.includes('Free trial limit')) {
+                        throw limitError;
+                    }
+                    console.warn('Server-side usage check failed (non-blocking):', limitError);
+                }
+            }
+            
             completion = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [

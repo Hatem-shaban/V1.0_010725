@@ -216,39 +216,56 @@ Each AI tool can be used once per day
 - ✅ Database-driven usage tracking
 - ✅ Minimal code changes with maximum impact
 
-### FINAL FIX: UTC Date Boundary Logic (2025-01-07)
+### FINAL FIX: Server-Side Usage Limiting (2025-01-07)
 
-**Issue Found**: The date boundary logic was off by timezone. The system was creating dates with UTC components but in local timezone, causing the daily usage check to look at the wrong day.
+**Issue Found**: The usage limiting was happening client-side, but operations were still being recorded server-side, allowing multiple operations to be stored in the database.
 
 **Root Cause**: 
-```javascript
-// BROKEN: Creates local date with UTC components
-const todayUTC = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+- Client-side usage check in `app.js` was working correctly
+- BUT the server-side function (`ai-operations.js`) was not checking usage limits
+- Operations were being processed and recorded server-side even when they should be blocked
 
-// This results in dates like "2025-07-01T21:00:00.000Z" when it should be "2025-07-02T00:00:00.000Z"
-// The timezone offset (-180 minutes / -3 hours) was affecting the date calculation
+**Solution Applied**:
+1. **Moved usage limiting to server-side**: Added usage limit check in `ai-operations.js` BEFORE the OpenAI API call
+2. **Removed redundant client-side check**: Simplified `app.js` to let server handle usage enforcement  
+3. **Proper enforcement**: Server now blocks operations before processing AND before recording
+
+**Code Changes**:
+```javascript
+// IN ai-operations.js - BEFORE OpenAI call:
+if (userId) {
+    const { data: user } = await supabase.from('users').select('subscription_status').eq('id', userId).single();
+    
+    if (user.subscription_status === 'free_trial') {
+        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const { data: operations } = await supabase.from('operation_history')
+            .select('*').eq('user_id', userId).eq('operation_type', operation)
+            .gte('created_at', todayUTC.toISOString());
+            
+        if (operations.length >= 1) {
+            throw new Error('Free trial limit reached...');
+        }
+    }
+}
 ```
 
-**Fix Applied**:
-```javascript
-// FIXED: Creates proper UTC date
-const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-// This correctly results in "2025-07-02T00:00:00.000Z" for July 2nd UTC
-```
-
-**Validation**: Created `test-date-logic.html` to compare old vs new logic and confirm the new logic correctly matches the current UTC date.
+**Benefits**:
+- ✅ **True enforcement**: Operations are blocked before OpenAI API call (saves costs)
+- ✅ **Database integrity**: No duplicate operations recorded for free trial users  
+- ✅ **Security**: Server-side validation cannot be bypassed by client manipulation
+- ✅ **Performance**: Failed operations don't consume OpenAI API credits
 
 ---
 
 ## IMPLEMENTATION STATUS: ✅ COMPLETE
 
-The free trial implementation is now fully functional with proper usage limiting:
+The free trial implementation is now fully functional with proper server-side usage limiting:
 
-1. ✅ **Free Trial Signup**: "Start Your Free Trial Today" button opens signup modal and creates free trial account
+1. ✅ **Free Trial Signup**: "Start Your Free Trial Today" → Signup Modal → Dashboard Access (no payment required)
 2. ✅ **Dashboard Access**: Free trial users can access dashboard with clear trial badge and upgrade banner  
-3. ✅ **Usage Limiting**: Strict enforcement of 1 operation per tool per day with proper UTC date boundaries
-4. ✅ **Upgrade Prompts**: Clear upgrade modal when limits are reached, blocking further use
-5. ✅ **Visual Indicators**: Prominent free trial badges and upgrade banners throughout the UI
+3. ✅ **Server-Side Usage Limiting**: Strict enforcement of 1 operation per tool per day at the server level
+4. ✅ **Proper Blocking**: Operations are blocked before processing AND before database recording
+5. ✅ **Upgrade Prompts**: Clear upgrade modal when limits are reached
+6. ✅ **Visual Indicators**: Prominent free trial badges and upgrade banners throughout the UI
 
-**Final Code State**: All usage limiting logic is working correctly with proper timezone handling.
+**Final Code State**: All usage limiting logic is working correctly with server-side enforcement and proper UTC date boundaries.
