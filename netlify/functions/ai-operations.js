@@ -221,42 +221,6 @@ exports.handler = async (event, context) => {
             // Don't log the full error object as it might contain the API key
             throw new Error(`OpenAI API Error: ${openaiError.message || 'Unknown error'}`);
         }
-        
-        if (!completion || !completion.choices || completion.choices.length === 0) {
-            throw new Error('No response from OpenAI API');
-        }
-        
-        // Variable to track content saving status
-        const result = completion.choices[0].message.content.trim();
-        
-        // Prepare the response JSON
-        const responseBody = {
-            result: result,
-            // Add metadata for debugging
-            _meta: {
-                operation: operation
-            }
-        };
-        
-        try {
-            // Explicitly stringify the response to catch any JSON serialization errors
-            const responseJson = JSON.stringify(responseBody);
-            
-            return {
-                statusCode: 200,
-                headers,
-                body: responseJson
-            };
-        } catch (jsonError) {
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    error: 'Error formatting response',
-                    details: 'The server encountered an error while formatting the response'
-                })
-            };
-        }
     } catch (error) {
         // Provide a more specific error code and message for invalid operations
         if (error.message === 'Invalid operation type') {
