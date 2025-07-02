@@ -83,44 +83,76 @@ class StartupStackAI {
     }
 
     async checkUsageLimits(userId, operation) {
-        if (!userId) return; // Skip check if no user ID
+        if (!userId) {
+            console.log('No userId provided, skipping usage check');
+            return; // Skip check if no user ID
+        }
+        
+        console.log('Checking usage limits for user:', userId, 'operation:', operation);
+        console.log('UserManager available:', !!this.userManager);
         
         try {
+            // Use userManager's supabase instance if available, otherwise use global
+            const supabaseClient = this.userManager?.supabase || supabase;
+            console.log('Using supabase client:', !!supabaseClient);
+            
             // Get user subscription status
-            const { data: user, error: userError } = await supabase
+            const { data: user, error: userError } = await supabaseClient
                 .from('users')
                 .select('subscription_status, created_at')
                 .eq('id', userId)
                 .single();
 
             if (userError || !user) {
-                console.warn('Could not verify user subscription status');
+                console.warn('Could not verify user subscription status:', userError);
                 return; // Allow operation to continue
             }
 
+            console.log('User subscription status:', user.subscription_status);
+
             // Only check limits for free trial users
             if (user.subscription_status === 'free_trial') {
-                // Count today's operations for this specific tool for this user
-                const today = new Date().toISOString().split('T')[0];
-                const { data: operations, error: opsError } = await supabase
+                console.log('User is on free trial, checking daily limits...');
+                
+                // Get today's date in UTC and create proper date boundaries
+                const now = new Date();
+                const todayUTC = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+                const tomorrowUTC = new Date(todayUTC);
+                tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
+                
+                console.log('Checking usage limits for:', {
+                    userId,
+                    operation,
+                    todayStart: todayUTC.toISOString(),
+                    tomorrowStart: tomorrowUTC.toISOString()
+                });
+                
+                const { data: operations, error: opsError } = await supabaseClient
                     .from('operation_history')
-                    .select('id, operation_type')
+                    .select('id, operation_type, created_at')
                     .eq('user_id', userId)
                     .eq('operation_type', operation)
-                    .gte('created_at', today + 'T00:00:00.000Z')
-                    .lt('created_at', today + 'T23:59:59.999Z');
+                    .gte('created_at', todayUTC.toISOString())
+                    .lt('created_at', tomorrowUTC.toISOString());
 
                 if (opsError) {
-                    console.warn('Could not check usage limits');
+                    console.warn('Could not check usage limits:', opsError);
                     return; // Allow operation to continue
                 }
 
                 const usageCount = operations ? operations.length : 0;
+                console.log('Usage count for', operation, ':', usageCount, 'operations found:', operations);
+                
                 const FREE_TRIAL_LIMIT = 1; // One use per tool per day
 
                 if (usageCount >= FREE_TRIAL_LIMIT) {
+                    console.log('LIMIT EXCEEDED! Throwing error...');
                     throw new Error(`Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!`);
                 }
+                
+                console.log('Usage check passed, allowing operation to continue');
+            } else {
+                console.log('User is not on free trial, skipping usage check');
             }
         } catch (error) {
             if (error.message.includes('Free trial limit')) {
@@ -132,12 +164,19 @@ class StartupStackAI {
     }
 
     async callAIOperation(operation, params) {
+        console.log('=== callAIOperation started ===');
+        console.log('Operation:', operation);
+        console.log('Params:', params);
+        
         try {
             // Get user ID for tracking
             const userId = localStorage.getItem('userId');
+            console.log('Retrieved userId from localStorage:', userId);
             
             // Check if user is on free trial and has usage limits
+            console.log('About to check usage limits...');
             await this.checkUsageLimits(userId, operation);
+            console.log('Usage limits check passed, proceeding with operation...');
             
             // Implement a simple retry mechanism
             let attempts = 0;

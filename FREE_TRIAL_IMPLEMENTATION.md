@@ -85,7 +85,103 @@ if (operations.length >= 1) {
 3. **UI Response**: Shows upgrade modal with clear call-to-action
 4. **Operation Blocked**: AI call never reaches the API when limit exceeded
 
-## User Experience Flow
+### 3. **Testing and Validation**
+
+To verify the fixes work:
+
+1. **Check Console Logs**: Look for detailed logging in browser console when using AI tools
+2. **Database Verification**: Check that operations stop being recorded after first daily use  
+3. **UI Testing**: Verify banners and modals appear correctly for free trial users
+4. **Error Flow**: Confirm limit-reached modal appears on second attempt of same tool
+
+**Expected Console Output for Working System**:
+```
+=== callAIOperation started ===
+Operation: generatePitchDeck
+Checking usage limits for user: fd4e0988-e90e-4da0-946d-e42af24cae75
+User subscription status: free_trial
+Usage count for generatePitchDeck: 1 operations found: [...]
+LIMIT EXCEEDED! Throwing error...
+```
+
+## Issues Found and Fixed
+
+### 1. **Usage Limiting Not Working - ROOT CAUSE IDENTIFIED**
+
+**Problem**: The database shows multiple operations per day for the same user, indicating usage limits aren't being enforced.
+
+**Root Causes**:
+1. **Supabase Client Access**: The `checkUsageLimits` method wasn't properly accessing the supabase client
+2. **Date Filtering**: The date range filtering for "today" was potentially incorrect
+3. **Debugging**: Insufficient logging to track what's happening
+
+**Fixes Applied**:
+
+#### A. Fixed Supabase Client Access
+```javascript
+// Before: Using undefined supabase reference
+const { data: user, error: userError } = await supabase...
+
+// After: Using proper client with fallback
+const supabaseClient = this.userManager?.supabase || supabase;
+const { data: user, error: userError } = await supabaseClient...
+```
+
+#### B. Improved Date Filtering Logic
+```javascript
+// Better UTC date boundary calculation
+const now = new Date();
+const todayUTC = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+const tomorrowUTC = new Date(todayUTC);
+tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
+
+// More precise date range query
+.gte('created_at', todayUTC.toISOString())
+.lt('created_at', tomorrowUTC.toISOString())
+```
+
+#### C. Added Comprehensive Debugging
+```javascript
+console.log('Checking usage limits for user:', userId, 'operation:', operation);
+console.log('UserManager available:', !!this.userManager);
+console.log('User subscription status:', user.subscription_status);
+console.log('Usage count for', operation, ':', usageCount, 'operations found:', operations);
+```
+
+### 2. **Upgrade Banner Visuals Not Clear - FIXED**
+
+**Problem**: Original banner was too subtle and didn't clearly communicate the trial limitations.
+
+**Fixes Applied**:
+
+#### A. Enhanced Free Trial Banner
+```css
+/* More prominent gradient and spacing */
+.bg-gradient-to-r from-orange-500 via-red-500 to-pink-500
+.py-5 px-4 shadow-lg border-b-4 border-orange-300
+
+/* Added icons and better typography */
+🚀 Free Trial Active - Limited Usage
+Each AI tool can be used once per day
+```
+
+#### B. Improved Free Trial Badge
+```css
+/* More eye-catching badge with animation */
+.bg-gradient-to-r from-orange-500 to-red-500
+.animate-pulse border-2 border-orange-300
+🔥 FREE TRIAL - 1 use per tool/day
+```
+
+#### C. Enhanced Limit-Reached Modal
+```html
+<!-- More professional and informative -->
+- Large lock icon in colored circle
+- Clear messaging with emojis
+- Feature comparison grid
+- Prominent upgrade button
+- "Try tomorrow" alternative clearly stated
+```
 
 ### New Free Trial User
 1. Clicks "Start Your Free Trial Today"

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage Limit Test</title>
+    <script type="module">
+        import startupStackPromise from './app.js';
+        
+        window.testUsageLimits = async function() {
+            try {
+                console.log('=== Starting Usage Limit Test ===');
+                
+                // Simulate a free trial user
+                const testUserId = 'fd4e0988-e90e-4da0-946d-e42af24cae75'; // From your database
+                localStorage.setItem('userId', testUserId);
+                
+                // Initialize StartupStack
+                const stack = await startupStackPromise;
+                console.log('StartupStack initialized:', stack);
+                
+                // Test the checkUsageLimits method directly
+                console.log('Testing checkUsageLimits...');
+                await stack.aiTools.checkUsageLimits(testUserId, 'generatePitchDeck');
+                console.log('checkUsageLimits completed without error');
+                
+                // Try to call an AI operation that should be limited
+                console.log('Testing AI operation...');
+                await stack.aiTools.generatePitchDeck('investor', 'technology');
+                console.log('AI operation completed - this should not happen if limit is working!');
+                
+            } catch (error) {
+                console.log('Expected error caught:', error.message);
+                if (error.message.includes('Free trial limit')) {
+                    console.log('✅ Usage limit is working correctly!');
+                } else {
+                    console.log('❌ Unexpected error:', error);
+                }
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Usage Limit Test</h1>
+    <button onclick="testUsageLimits()">Test Usage Limits</button>
+    <p>Check console for results</p>
+</body>
+</html>

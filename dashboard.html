@@ -151,6 +151,10 @@
                             document.getElementById('aiResultsTitle').textContent = 'Generating ' + toolTitle + '...';
                         }
                           // Call the appropriate AI function
+                        console.log('About to call AI tool:', toolName, 'with params:', param1, param2, additionalParams);
+                        console.log('User ID:', localStorage.getItem('userId'));
+                        console.log('StartupStack object:', window.StartupStack);
+                        
                         await window.StartupStack.aiTools[toolName](param1, param2, additionalParams);
                         
                         // Remove loading indicator
@@ -173,23 +177,51 @@
                             // Check if it's a free trial limit error
                             if (error.message.includes('Free trial limit')) {
                                 resultsContent.innerHTML = `
-                                    <div class="text-center py-8">
-                                        <div class="mb-4">
-                                            <i class="fas fa-lock text-4xl text-orange-400 mb-4"></i>
-                                            <h3 class="text-xl font-bold text-orange-400 mb-2">Free Trial Limit Reached</h3>
-                                            <p class="text-gray-300 mb-6">You've used this AI tool once today. Free trial users can use each tool once per day.</p>
+                                    <div class="text-center py-12 px-6">
+                                        <div class="mb-6">
+                                            <div class="w-20 h-20 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                <i class="fas fa-lock text-3xl text-white"></i>
+                                            </div>
+                                            <h3 class="text-2xl font-bold text-orange-400 mb-3">🚨 Daily Limit Reached!</h3>
+                                            <p class="text-gray-300 mb-2 text-lg">You've already used this AI tool today.</p>
+                                            <p class="text-gray-400 mb-8 text-sm">Free trial users can use each tool <strong>once per day</strong>.</p>
                                         </div>
+                                        
+                                        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+                                            <h4 class="text-white font-semibold mb-3">🔓 Upgrade to unlock:</h4>
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                                <div class="flex items-center text-green-400">
+                                                    <i class="fas fa-check mr-2"></i>Unlimited AI tool usage
+                                                </div>
+                                                <div class="flex items-center text-green-400">
+                                                    <i class="fas fa-check mr-2"></i>All 8 premium tools
+                                                </div>
+                                                <div class="flex items-center text-green-400">
+                                                    <i class="fas fa-check mr-2"></i>Priority support
+                                                </div>
+                                                <div class="flex items-center text-green-400">
+                                                    <i class="fas fa-check mr-2"></i>Advanced features
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
                                         <div class="space-y-3">
                                             <button onclick="window.location.href='/?upgrade=true'" 
-                                                class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition duration-200">
-                                                <i class="fas fa-crown mr-2"></i>Upgrade to Pro - Unlimited Usage
+                                                class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:opacity-90 transition duration-200 shadow-lg transform hover:scale-105">
+                                                <i class="fas fa-crown mr-2"></i>Upgrade to Pro Now
                                             </button>
                                             <button onclick="closeAiResults()" 
-                                                class="w-full bg-gray-600 text-white py-2 px-6 rounded-lg hover:bg-gray-700 transition duration-200">
-                                                Close
+                                                class="w-full bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition duration-200">
+                                                Close - Try Again Tomorrow
                                             </button>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-4">Come back tomorrow to use this tool again for free!</p>
+                                        
+                                        <div class="mt-6 p-4 bg-blue-900 bg-opacity-50 rounded-lg">
+                                            <p class="text-xs text-blue-300">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                <strong>Free option:</strong> Come back tomorrow to use this tool again for free!
+                                            </p>
+                                        </div>
                                     </div>
                                 `;
                             } else {
@@ -394,18 +426,32 @@
         </div>
 
         <!-- Free Trial Upgrade Banner -->
-        <div id="freeTrialBanner" class="bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-4 hidden">
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-                <div class="flex items-center mb-3 md:mb-0">
-                    <i class="fas fa-clock text-yellow-300 mr-3 text-lg"></i>
+        <div id="freeTrialBanner" class="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white py-5 px-4 hidden shadow-lg border-b-4 border-orange-300">
+            <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 lg:mb-0">
+                    <div class="bg-white bg-opacity-20 rounded-full p-3 mr-4">
+                        <i class="fas fa-clock text-yellow-300 text-2xl"></i>
+                    </div>
                     <div>
-                        <p class="font-semibold">Free Trial - Limited Usage</p>
-                        <p class="text-sm opacity-90">Each AI tool can be used once per day. Upgrade for unlimited access!</p>
+                        <p class="font-bold text-lg">🚀 Free Trial Active - Limited Usage</p>
+                        <p class="text-sm opacity-90 mt-1">Each AI tool can be used <strong>once per day</strong>. Upgrade now for unlimited access to all tools!</p>
+                        <div class="flex items-center mt-2 text-xs opacity-80">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span>Your trial includes all 8 AI tools with daily limits</span>
+                        </div>
                     </div>
                 </div>
-                <a href="/?upgrade=true" class="bg-white text-orange-700 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold">
-                    <i class="fas fa-crown mr-2"></i>Upgrade to Pro
-                </a>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button onclick="window.location.href='/?upgrade=true'" 
+                        class="bg-white text-orange-700 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-bold shadow-lg transform hover:scale-105 flex items-center">
+                        <i class="fas fa-crown mr-2 text-yellow-600"></i>
+                        Upgrade to Pro
+                    </button>
+                    <div class="text-center text-xs opacity-75 mt-2 sm:mt-0 sm:ml-4 flex flex-col justify-center">
+                        <span>✅ Unlimited usage</span>
+                        <span>✅ All premium features</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1112,8 +1158,8 @@
             if (!trialBadge) {
                 trialBadge = document.createElement('div');
                 trialBadge.id = 'freeTrialBadge';
-                trialBadge.className = 'plan-badge bg-orange-500 text-white px-3 py-1 rounded-full text-sm';
-                trialBadge.innerHTML = 'Free Trial - 1 use per tool per day';
+                trialBadge.className = 'plan-badge bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg border-2 border-orange-300 animate-pulse';
+                trialBadge.innerHTML = '🔥 FREE TRIAL - 1 use per tool/day';
                 
                 // Insert after user profile
                 const userProfile = document.querySelector('.user-profile');
