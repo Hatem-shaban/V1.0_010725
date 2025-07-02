@@ -951,20 +951,62 @@
                     // Check if user already exists
                     const { data: existingUser } = await window.StartupStack.supabase
                         .from('users')
-                        .select('id, email')
+                        .select('id, email, subscription_status, created_at')
                         .eq('email', email)
                         .maybeSingle();
                     
                     if (existingUser) {
-                        // Switch to login mode if user already exists
-                        try {
-                            window.switchTab('login');
-                            showNotification('Email already exists. Please log in instead.', 'info');
-                        } catch (e) {
-                            console.error('Error switching to login tab:', e);
-                            showNotification('Email already exists. Please log in instead.', 'info');
+                        // Check if it's a free trial user trying to upgrade
+                        const isFreeTrial = localStorage.getItem('isFreeTrial') === 'true';
+                        
+                        if (existingUser.subscription_status === 'free_trial' && !isFreeTrial) {
+                            // Existing free trial user wants to upgrade - proceed with checkout
+                            console.log('Free trial user upgrading to paid plan');
+                            
+                            // Store user data for checkout
+                            localStorage.setItem('userId', existingUser.id);
+                            localStorage.setItem('userEmail', email);
+                            
+                            // Create checkout session
+                            const variantId = localStorage.getItem('selectedVariantId') || '877605';
+                            
+                            const response = await fetch('/.netlify/functions/create-lemonsqueezy-checkout', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ 
+                                    customerEmail: email, 
+                                    userId: existingUser.id,
+                                    variantId: variantId
+                                })
+                            });
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`HTTP ${response.status}: ${errorText}`);
+                            }
+                            
+                            const checkoutData = await response.json();
+                            
+                            if (!checkoutData || !checkoutData.checkout_url) {
+                                throw new Error('Invalid checkout response received');
+                            }
+                            
+                            window.location.href = checkoutData.checkout_url;
+                            return;
+                        } else {
+                            // Regular case - switch to login mode
+                            try {
+                                window.switchTab('login');
+                                showNotification('Email already exists. Please log in instead.', 'info');
+                            } catch (e) {
+                                console.error('Error switching to login tab:', e);
+                                showNotification('Email already exists. Please log in instead.', 'info');
+                            }
+                            return;
                         }
-                        return;
                     }
                     
                     // Hash the password before storing
