@@ -104,11 +104,9 @@ exports.handler = async (event, context) => {
                 userPrompt = `Create a financial projection for ${params.business} over the next ${params.timeframe}. ${params.keywordsMore ? 'Additional financial factors to consider: ' + params.keywordsMore : ''} ${params.additionalContext ? 'Additional context: ' + params.additionalContext : ''} Include revenue streams, expenses, and growth assumptions.`;
                 break;
             default:
-                console.error(`Unknown operation type: ${operation}`);
                 throw new Error('Invalid operation type');
         }// Check for API key only when needed (not exposing it in logs)
         if (!process.env.OPENAI_API_KEY) {
-            console.error('OpenAI API key missing from environment variables');
             throw new Error('Server configuration error: API key not available');
         }
         
@@ -146,9 +144,6 @@ exports.handler = async (event, context) => {
                         const tomorrowUTC = new Date(todayUTC);
                         tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
 
-                        console.log('Server-side usage check for free trial user:', userId, 'operation:', operation);
-                        console.log('Date range:', todayUTC.toISOString(), 'to', tomorrowUTC.toISOString());
-
                         const { data: operations, error: opsError } = await supabase
                             .from('operation_history')
                             .select('id, operation_type, created_at')
@@ -158,18 +153,15 @@ exports.handler = async (event, context) => {
                             .lt('created_at', tomorrowUTC.toISOString());
 
                         if (!opsError && operations && operations.length >= 1) {
-                            console.log('Server-side: LIMIT EXCEEDED for', operation, '- found', operations.length, 'operations today');
                             throw new Error('Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!');
                         }
-
-                        console.log('Server-side: Usage check passed for', operation, '- found', operations ? operations.length : 0, 'operations today');
                     }
                 } catch (limitError) {
                     // Re-throw usage limit errors, but don't block for other database errors
                     if (limitError.message.includes('Free trial limit')) {
                         throw limitError;
                     }
-                    console.warn('Server-side usage check failed (non-blocking):', limitError);
+                    // Silent fail for other database errors
                 }
             }
             
@@ -200,11 +192,11 @@ exports.handler = async (event, context) => {
                         });
                     
                     if (error) {
-                        console.error('Error saving operation history from serverless function:', error);
+                        // Silent fail for operation history storage
                     }
                 } catch (storageError) {
                     // Non-blocking - don't let history storage failure affect the main operation
-                    console.error('Failed to store operation history from serverless:', storageError);
+                    // Silent fail for operation history storage
                 }
             }
             
@@ -216,26 +208,18 @@ exports.handler = async (event, context) => {
                 })
             };
         } catch (openaiError) {
-            // Log error without exposing sensitive data
-            console.error('OpenAI API Error type:', openaiError.constructor.name);
-            console.error('OpenAI API Error status:', openaiError.status);
-            console.error('OpenAI API Error name:', openaiError.name);
-            
             // More detailed error logging for timeouts and network issues
             if (openaiError.name === 'AbortError') {
-                console.error('OpenAI request timed out');
                 throw new Error('Request to AI service timed out. Please try again.');
             }
             
             if (openaiError.name === 'FetchError') {
-                console.error('Network error connecting to OpenAI');
                 throw new Error('Network error connecting to AI service. Please check your connection.');
             }
             
             // Don't log the full error object as it might contain the API key
             throw new Error(`OpenAI API Error: ${openaiError.message || 'Unknown error'}`);
         }if (!completion || !completion.choices || completion.choices.length === 0) {
-            console.error('Invalid or empty response from OpenAI API');
             throw new Error('No response from OpenAI API');
         }
         
@@ -261,7 +245,6 @@ exports.handler = async (event, context) => {
                 body: responseJson
             };
         } catch (jsonError) {
-            console.error('Error serializing response to JSON:', jsonError);
             return {
                 statusCode: 500,
                 headers,
@@ -272,8 +255,6 @@ exports.handler = async (event, context) => {
             };
         }
     } catch (error) {
-        console.error('Error in AI operation:', error);
-        
         // Provide a more specific error code and message for invalid operations
         if (error.message === 'Invalid operation type') {
             return {

@@ -151,9 +151,7 @@
                             document.getElementById('aiResultsTitle').textContent = 'Generating ' + toolTitle + '...';
                         }
                           // Call the appropriate AI function
-                        console.log('About to call AI tool:', toolName, 'with params:', param1, param2, additionalParams);
-                        console.log('User ID:', localStorage.getItem('userId'));
-                        console.log('StartupStack object:', window.StartupStack);
+
                         
                         await window.StartupStack.aiTools[toolName](param1, param2, additionalParams);
                         
@@ -220,7 +218,6 @@
                         // Show different notifications based on error type
                         if (error.message.includes('Free trial limit')) {
                             // Don't show alert for limit errors since we show upgrade modal
-                            console.log('Free trial limit reached for', toolTitle);
                         } else {
                             // Show error notification for other errors
                             alert('Error generating ' + toolTitle + ': ' + error.message);
@@ -1117,7 +1114,6 @@
                 }
             });
         } catch (error) {
-            console.error('Auth check error:', error);
             // Ensure body is visible before redirecting
             document.body.style.opacity = '1';
             setTimeout(() => {
@@ -1296,7 +1292,6 @@
                     }
                 })
                 .catch(err => {
-                    console.error('Failed to copy: ', err);
                     alert('Failed to copy to clipboard. Please try again.');
                 });
         }
@@ -1368,7 +1363,6 @@
                         throw new Error(data.error || 'Failed to send email');
                     }
                 } catch (error) {
-                    console.error('Email sending error:', error);
                     alert('Failed to send email. Please try again later.');
                     emailBtn.innerHTML = originalText;
                     emailBtn.disabled = false;

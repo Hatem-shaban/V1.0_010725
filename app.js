@@ -39,18 +39,15 @@ class UserManager {
             return newUser;
 
         } catch (error) {
-            console.error('User signup error:', error);
             throw error;
         }
     }
 
     // Store user operation history in Supabase
     async storeOperationHistory(userId, operation, params, result) {
-        try {
-            if (!userId) {
-                console.warn('No userId provided for operation history storage');
-                return;
-            }
+        try {        if (!userId) {
+            return;
+        }
 
             const { error } = await this.supabase
                 .from('operation_history')
@@ -63,10 +60,10 @@ class UserManager {
                 });
 
             if (error) {
-                console.error('Error saving operation history:', error);
+                // Silent fail for operation history storage
             }
         } catch (error) {
-            console.error('Failed to store operation history:', error);
+            // Silent fail for operation history storage
             // Non-blocking - we don't want to interrupt the main flow if storage fails
         }
     }
@@ -84,17 +81,12 @@ class StartupStackAI {
 
     async checkUsageLimits(userId, operation) {
         if (!userId) {
-            console.log('No userId provided, skipping usage check');
             return; // Skip check if no user ID
         }
-        
-        console.log('Checking usage limits for user:', userId, 'operation:', operation);
-        console.log('UserManager available:', !!this.userManager);
         
         try {
             // Use userManager's supabase instance if available, otherwise use global
             const supabaseClient = this.userManager?.supabase || supabase;
-            console.log('Using supabase client:', !!supabaseClient);
             
             // Get user subscription status
             const { data: user, error: userError } = await supabaseClient
@@ -104,15 +96,11 @@ class StartupStackAI {
                 .single();
 
             if (userError || !user) {
-                console.warn('Could not verify user subscription status:', userError);
                 return; // Allow operation to continue
             }
 
-            console.log('User subscription status:', user.subscription_status);
-
             // Only check limits for free trial users
             if (user.subscription_status === 'free_trial') {
-                console.log('User is on free trial, checking daily limits...');
                 
                 // Get today's date in UTC and create proper date boundaries
                 const now = new Date();
@@ -120,15 +108,6 @@ class StartupStackAI {
                 const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
                 const tomorrowUTC = new Date(todayUTC);
                 tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-                
-                console.log('Checking usage limits for:', {
-                    userId,
-                    operation,
-                    currentUTCDate: now.toISOString().split('T')[0],
-                    localTimezoneOffset: now.getTimezoneOffset(),
-                    todayStart: todayUTC.toISOString(),
-                    tomorrowStart: tomorrowUTC.toISOString()
-                });
                 
                 const { data: operations, error: opsError } = await supabaseClient
                     .from('operation_history')
@@ -139,45 +118,32 @@ class StartupStackAI {
                     .lt('created_at', tomorrowUTC.toISOString());
 
                 if (opsError) {
-                    console.warn('Could not check usage limits:', opsError);
                     return; // Allow operation to continue
                 }
 
                 const usageCount = operations ? operations.length : 0;
-                console.log('Usage count for', operation, ':', usageCount, 'operations found:', operations);
                 
                 const FREE_TRIAL_LIMIT = 1; // One use per tool per day
 
                 if (usageCount >= FREE_TRIAL_LIMIT) {
-                    console.log('LIMIT EXCEEDED! Throwing error...');
                     throw new Error(`Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!`);
                 }
-                
-                console.log('Usage check passed, allowing operation to continue');
-            } else {
-                console.log('User is not on free trial, skipping usage check');
             }
         } catch (error) {
             if (error.message.includes('Free trial limit')) {
                 throw error; // Re-throw usage limit errors
             }
-            console.warn('Error checking usage limits:', error);
             // Don't block the operation for other errors
         }
     }
 
     async callAIOperation(operation, params) {
-        console.log('=== callAIOperation started ===');
-        console.log('Operation:', operation);
-        console.log('Params:', params);
         
         try {
             // Get user ID for tracking
             const userId = localStorage.getItem('userId');
-            console.log('Retrieved userId from localStorage:', userId);
             
             // Usage limits are now enforced server-side for better security
-            console.log('Proceeding with operation (server-side usage limits will apply)...');
             
             // Implement a simple retry mechanism
             let attempts = 0;
@@ -219,7 +185,6 @@ class StartupStackAI {
                     }
                       // Check for specific server configuration errors
                     if (data.error && data.error.includes('Server configuration error')) {
-                        console.error('API configuration issue detected. Please check Netlify environment variables.');
                         throw new Error('StartupStack is not configured properly. Please contact support.');
                     }
                     
@@ -243,13 +208,11 @@ class StartupStackAI {
             }
               // Final check for errors after retries
             if (!response.ok || data.error) {
-                console.error(`API response error - Status: ${response.status}`, data);
                 throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
             
             // Check if result exists in the response
             if (!data.result) {
-                console.error('API response missing result data:', data);
                 throw new Error('Unexpected API response format: missing result data');
             }
               
@@ -260,8 +223,6 @@ class StartupStackAI {
             
             return data.result;
         } catch (error) {
-            console.error('AI operation error:', error);
-            
             // More specific error handling for common issues
             if (error.message.includes('timeout') || error.name === 'AbortError') {
                 throw new Error('The request to our AI service timed out. Please try again.');
@@ -419,7 +380,7 @@ class StartupStackAI {
                         }                }
                 }
             } catch (e) {
-                console.error('Error formatting result:', e);
+                // Silent fail for formatting errors
             }
             
             contentElement.innerHTML = formattedResult;
@@ -552,7 +513,6 @@ async function initializeStartupStack() {
         window.StartupStack = stack;
         return stack;
     } catch (error) {
-        console.error('Error initializing StartupStack:', error);
         throw error;
     }
 }
