@@ -92,6 +92,39 @@
             }
         };
 
+        // New function for free trial signup
+        window.startFreeTrial = async function(event) {
+            event.preventDefault();
+            const currentButton = event.currentTarget;
+            const originalText = currentButton.innerHTML;
+            
+            try {
+                currentButton.disabled = true;
+                currentButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting Trial...';
+
+                // Initialize StartupStack if needed
+                if (!window.StartupStack?.initialized) {
+                    await initializeApp();
+                }
+
+                // Clear any previous variant selection since this is free trial
+                localStorage.removeItem('selectedVariantId');
+                localStorage.setItem('isFreeTrial', 'true');
+
+                // Always open in signup mode for free trial
+                window.openAuthModal('signup');
+
+            } catch (error) {
+                console.error('Free trial error:', error);
+                showNotification(error.message || 'Something went wrong', 'error');
+            } finally {
+                if (currentButton) {
+                    currentButton.disabled = false;
+                    currentButton.innerHTML = originalText;
+                }
+            }
+        };
+
         async function initializeAITools(userId) {
             try {
                 const { aiTools, userManager } = window.StartupStack;
@@ -399,11 +432,9 @@
         <div class="max-w-4xl mx-auto px-6 text-center">
             <h2 class="text-4xl font-bold mb-6">Ready to Launch Your Startup?</h2>
             <button 
-                onclick="startCheckout(event)" 
-                data-checkout-button
-                data-variant-id="877605"
+                onclick="startFreeTrial(event)" 
                 class="bg-white text-purple-600 px-8 py-4 rounded-lg text-xl font-semibold hover:bg-gray-100">
-                <i class="fas fa-credit-card mr-2"></i>Start Your Free Trial Today
+                <i class="fas fa-play mr-2"></i>Start Your Free Trial Today
             </button>
         </div>
     </section>    <!-- Auth Modal -->
@@ -608,7 +639,10 @@
         safeUpdateElement('signupTab', el => el.style.display = !isLoginMode ? 'block' : 'none');
         
         // Update form elements
-        safeUpdateElement('authTitle', el => el.textContent = isLoginMode ? 'Log In' : 'Sign Up');
+        const isFreeTrial = localStorage.getItem('isFreeTrial') === 'true';
+        const titleText = isLoginMode ? 'Log In' : (isFreeTrial ? 'Start Your Free Trial' : 'Sign Up');
+        
+        safeUpdateElement('authTitle', el => el.textContent = titleText);
         safeUpdateElement('loginBtnText', el => el.textContent = isLoginMode ? 'Log In' : 'Create Account');
         safeUpdateElement('nameField', el => el.style.display = isLoginMode ? 'none' : 'block');
         safeUpdateElement('passwordHelper', el => el.style.display = !isLoginMode ? 'block' : 'none');
@@ -904,6 +938,10 @@
                     // Hash the password before storing
                     const passwordHash = await hashPassword(password);
                     
+                    // Determine subscription status based on whether it's a free trial
+                    const isFreeTrial = localStorage.getItem('isFreeTrial') === 'true';
+                    const subscriptionStatus = isFreeTrial ? 'free_trial' : 'pending';
+                    
                     // Create new user with name field and password
                     const { data: newUser, error: createError } = await window.StartupStack.supabase
                         .from('users')
@@ -913,7 +951,8 @@
                             password_hash: passwordHash,
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
-                            subscription_status: 'pending',
+                            subscription_status: subscriptionStatus,
+                            plan_type: isFreeTrial ? 'starter' : 'basic',
                             last_login: new Date().toISOString()
                         }])
                         .select()
@@ -943,54 +982,67 @@
                         }
                     };
                       
-                    // Create checkout for new user
-                    try {
-                        // Ensure we have a variant ID set
-                        const currentVariantId = localStorage.getItem('selectedVariantId');
-                        if (!currentVariantId) {
-                            localStorage.setItem('selectedVariantId', '877605'); // Default to Pro plan
+                    // Handle free trial vs paid signup
+                    if (isFreeTrial) {
+                        // Free trial - redirect directly to dashboard
+                        closeAuthModal();
+                        localStorage.removeItem('isFreeTrial'); // Clean up
+                        showNotification('Welcome! Your free trial has started.', 'success');
+                        
+                        // Small delay for UX, then redirect to dashboard
+                        setTimeout(() => {
+                            window.location.href = '/dashboard.html';
+                        }, 1500);
+                    } else {
+                        // Paid plan signup - continue with checkout
+                        try {
+                            // Ensure we have a variant ID set
+                            const currentVariantId = localStorage.getItem('selectedVariantId');
+                            if (!currentVariantId) {
+                                localStorage.setItem('selectedVariantId', '877605'); // Default to Pro plan
+                            }
+                            
+                            // Add small delay to ensure user is created in database
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            
+                            // Use inline checkout function that was working
+                            const variantId = localStorage.getItem('selectedVariantId') || '877605';
+                            
+                            const response = await fetch('/.netlify/functions/create-lemonsqueezy-checkout', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ 
+                                    customerEmail: email, 
+                                    userId: newUser.id,
+                                    variantId: variantId
+                                })
+                            });
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`HTTP ${response.status}: ${errorText}`);
+                            }
+                            
+                            const checkoutData = await response.json();
+                            
+                            if (!checkoutData || !checkoutData.checkout_url) {
+                                throw new Error('Invalid checkout response received');
+                            }
+                            
+                            // Redirect to checkout
+                            window.location.href = checkoutData.checkout_url;
+                        } catch (checkoutError) {
+                            // Restore original notification function
+                            if (window.originalShowNotification) {
+                                window.showNotification = window.originalShowNotification;
+                                window.originalShowNotification = null;
+                            }
+                            console.error('Checkout error:', checkoutError);
+                            throw new Error('Failed to start checkout process. Please try again.');
                         }
-                        
-                        // Add small delay to ensure user is created in database
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        
-                        // Use inline checkout function that was working
-                        const variantId = localStorage.getItem('selectedVariantId') || '877605';
-                        
-                        const response = await fetch('/.netlify/functions/create-lemonsqueezy-checkout', {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({ 
-                                customerEmail: email, 
-                                userId: newUser.id,
-                                variantId: variantId
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            throw new Error(`HTTP ${response.status}: ${errorText}`);
-                        }
-                        
-                        const checkoutData = await response.json();
-                        
-                        if (!checkoutData || !checkoutData.checkout_url) {
-                            throw new Error('Invalid checkout response received');
-                        }
-                        
-                        // Redirect to checkout
-                        window.location.href = checkoutData.checkout_url;
-                    } catch (checkoutError) {
-                        // Restore original notification function
-                        if (window.originalShowNotification) {
-                            window.showNotification = window.originalShowNotification;
-                            window.originalShowNotification = null;
-                        }
-                        console.error('Checkout error:', checkoutError);
-                        throw new Error('Failed to start checkout process. Please try again.');
                     }
                 }
             } catch (error) {

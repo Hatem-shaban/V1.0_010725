@@ -82,10 +82,63 @@ class StartupStackAI {
         this.userManager = userManager;
     }
 
+    async checkUsageLimits(userId) {
+        if (!userId) return; // Skip check if no user ID
+        
+        try {
+            // Get user subscription status
+            const { data: user, error: userError } = await this.userManager.supabase
+                .from('users')
+                .select('subscription_status, created_at')
+                .eq('id', userId)
+                .single();
+
+            if (userError || !user) {
+                console.warn('Could not verify user subscription status');
+                return; // Allow operation to continue
+            }
+
+            // Only check limits for free trial users
+            if (user.subscription_status === 'free_trial') {
+                // Count today's operations for this user
+                const today = new Date().toISOString().split('T')[0];
+                const { data: operations, error: opsError } = await this.userManager.supabase
+                    .from('operation_history')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .gte('created_at', today + 'T00:00:00.000Z')
+                    .lt('created_at', today + 'T23:59:59.999Z');
+
+                if (opsError) {
+                    console.warn('Could not check usage limits');
+                    return; // Allow operation to continue
+                }
+
+                const usageCount = operations ? operations.length : 0;
+                const FREE_TRIAL_LIMIT = 1; // One use per tool per day
+
+                if (usageCount >= FREE_TRIAL_LIMIT) {
+                    throw new Error('Free trial limit reached. You can use each AI tool once per day. Upgrade to unlock unlimited usage.');
+                }
+            }
+        } catch (error) {
+            if (error.message.includes('Free trial limit')) {
+                throw error; // Re-throw usage limit errors
+            }
+            console.warn('Error checking usage limits:', error);
+            // Don't block the operation for other errors
+        }
+    }
+
     async callAIOperation(operation, params) {
         try {
             // Get user ID for tracking
-            const userId = localStorage.getItem('userId');            // Implement a simple retry mechanism
+            const userId = localStorage.getItem('userId');
+            
+            // Check if user is on free trial and has usage limits
+            await this.checkUsageLimits(userId);
+            
+            // Implement a simple retry mechanism
             let attempts = 0;
             const maxAttempts = 3;
             let response;

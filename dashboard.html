@@ -998,16 +998,17 @@
                 throw new Error('User verification failed');
             }
 
-            if (user.subscription_status !== 'active') {
+            if (user.subscription_status !== 'active' && user.subscription_status !== 'free_trial') {
                 window.location.replace('/?subscription=required');
                 return;
             }
             
-            // Store plan type for dashboard customization
+            // Store plan type and subscription status for dashboard customization
             userPlanType = user.plan_type || 'basic';
+            const userSubscriptionStatus = user.subscription_status;
             
             // Apply plan-specific UI customization
-            applyPlanSpecificUI(userPlanType);
+            applyPlanSpecificUI(userPlanType, userSubscriptionStatus);
 
             // Show dashboard content with a smooth transition
             setTimeout(() => {
@@ -1051,24 +1052,46 @@
             }, 100);
         }
     }    // Apply UI customization based on plan type
-    function applyPlanSpecificUI(planType) {
+    function applyPlanSpecificUI(planType, subscriptionStatus) {
         // Hide plan badge containers first
         document.querySelectorAll('.plan-badge').forEach(badge => {
             badge.style.display = 'none';
         });
         
-        // Show the appropriate plan badge
-        const planBadge = document.getElementById(`${planType}PlanBadge`);
-        if (planBadge) planBadge.style.display = 'block';
+        // Show appropriate badge for free trial users
+        if (subscriptionStatus === 'free_trial') {
+            // Create or show free trial badge
+            let trialBadge = document.getElementById('freeTrialBadge');
+            if (!trialBadge) {
+                trialBadge = document.createElement('div');
+                trialBadge.id = 'freeTrialBadge';
+                trialBadge.className = 'plan-badge bg-orange-500 text-white px-3 py-1 rounded-full text-sm';
+                trialBadge.innerHTML = 'Free Trial - 1 use per tool per day';
+                
+                // Insert after user profile
+                const userProfile = document.querySelector('.user-profile');
+                if (userProfile) {
+                    userProfile.parentNode.insertBefore(trialBadge, userProfile.nextSibling);
+                }
+            }
+            trialBadge.style.display = 'block';
+        } else {
+            // Show the appropriate plan badge for paid users
+            const planBadge = document.getElementById(`${planType}PlanBadge`);
+            if (planBadge) planBadge.style.display = 'block';
+        }
         
         // Set plan-specific class on body
         document.body.classList.add(`plan-${planType}`);
+        if (subscriptionStatus === 'free_trial') {
+            document.body.classList.add('free-trial');
+        }
         
         // Handle upgrade banner visibility
         const upgradeBanner = document.getElementById('upgradeBanner');
         if (upgradeBanner) {
-            // Only show for basic and trial plans
-            if (planType === 'basic' || !planType) {
+            // Show for free trial and basic plans
+            if (planType === 'basic' || subscriptionStatus === 'free_trial' || !planType) {
                 upgradeBanner.classList.remove('hidden');
             } else {
                 upgradeBanner.classList.add('hidden');
