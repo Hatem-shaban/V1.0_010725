@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@sendgrid/mail": "7.7.0",
+    "resend": "^3.2.0",
     "@supabase/supabase-js": "^2.39.0",
     "dotenv": "^16.3.1",
     "openai": "^4.28.0",

@@ -19,8 +19,7 @@
   LEMONSQUEEZY_STORE_ID = ""
   
   # Email Notifications
-  SENDGRID_API_KEY = ""
-  SENDGRID_FROM_EMAIL = ""
+  RESEND_API_KEY = ""
   
   # AI Integration - Must be set in Netlify environment variables
   OPENAI_API_KEY = ""  # Create in OpenAI dashboard and add to Netlify environment
