@@ -29,9 +29,9 @@
                         timestamp: Date.now()
                     });
                     
-                    // Log slow API calls
+                    // Track slow API calls for internal monitoring
                     if (duration > 3000) {
-                        console.warn(`Slow API call detected: ${url} - ${duration.toFixed(2)}ms`);
+                        // Could send to analytics service here
                     }
                     
                     return response;
@@ -119,12 +119,9 @@
         if ('memory' in performance) {
             const memoryInfo = performance.memory;
             
-            // Log memory warning if usage is high
+            // Track memory usage internally
             if (memoryInfo.usedJSHeapSize > memoryInfo.jsHeapSizeLimit * 0.8) {
-                console.warn('High memory usage detected:', {
-                    used: (memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2) + 'MB',
-                    limit: (memoryInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2) + 'MB'
-                });
+                // Could trigger cleanup or send alert to monitoring service
             }
         }
     }
@@ -138,11 +135,10 @@
             if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
                 // Disable non-essential animations on slow connections
                 document.body.classList.add('slow-connection');
-                console.info('Slow connection detected - optimizing for performance');
             }
             
             connection.addEventListener('change', () => {
-                console.info('Connection changed:', connection.effectiveType);
+                // Handle connection changes
             });
         }
     }
@@ -194,7 +190,6 @@
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const report = generatePerformanceReport();
-                console.info('Performance Report:', report);
                 
                 // Send performance data to analytics if needed
                 if (window.gtag) {

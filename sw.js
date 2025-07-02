@@ -22,8 +22,6 @@ const API_CACHE_PATTERNS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-    console.log('Service Worker installing...');
-    
     event.waitUntil(
         Promise.all([
             caches.open(STATIC_CACHE_NAME).then((cache) => {
@@ -31,7 +29,6 @@ self.addEventListener('install', (event) => {
             }),
             caches.open(CACHE_NAME)
         ]).then(() => {
-            console.log('Service Worker installed successfully');
             self.skipWaiting();
         })
     );
@@ -39,20 +36,16 @@ self.addEventListener('install', (event) => {
 
 // Activate event - cleanup old caches
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker activating...');
-    
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
         }).then(() => {
-            console.log('Service Worker activated');
             return self.clients.claim();
         })
     );
@@ -108,7 +101,6 @@ async function cacheFirstStrategy(request, cacheName) {
         
         return networkResponse;
     } catch (error) {
-        console.error('Cache First strategy failed:', error);
         return new Response('Offline content not available', { status: 503 });
     }
 }
@@ -131,8 +123,6 @@ async function networkFirstStrategy(request, cacheName) {
         
         return networkResponse;
     } catch (error) {
-        console.log('Network failed, trying cache for:', request.url);
-        
         const cache = await caches.open(cacheName);
         const cachedResponse = await cache.match(request);
         
@@ -163,7 +153,7 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
                 cache.put(request, networkResponse.clone());
             }
         }).catch(error => {
-            console.log('Background update failed:', error);
+            // Silent fail for background updates
         });
         
         return cachedResponse;
@@ -192,8 +182,6 @@ self.addEventListener('sync', (event) => {
 
 async function doBackgroundSync() {
     // Retry failed API requests when back online
-    console.log('Background sync triggered');
-    
     // Implementation for retrying failed requests
     // This could include sending queued AI operations, etc.
 }
