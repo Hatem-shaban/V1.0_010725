@@ -177,29 +177,29 @@
                             // Check if it's a free trial limit error
                             if (error.message.includes('Free trial limit')) {
                                 resultsContent.innerHTML = `
-                                    <div class="text-center py-8 px-6">
-                                        <div class="mb-6">
-                                            <div class="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                                <i class="fas fa-lock text-2xl text-white"></i>
+                                    <div class="text-center py-4 px-4">
+                                        <div class="mb-4">
+                                            <div class="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                                                <i class="fas fa-lock text-lg text-white"></i>
                                             </div>
-                                            <h3 class="text-xl font-bold text-orange-400 mb-2">Daily Limit Reached</h3>
-                                            <p class="text-gray-300 mb-6">You've used this AI tool today. Upgrade for unlimited access!</p>
+                                            <h3 class="text-lg font-bold text-orange-400 mb-2">Daily Limit Reached</h3>
+                                            <p class="text-gray-300 mb-4 text-sm">You've used this AI tool today. Upgrade for unlimited access!</p>
                                         </div>
                                         
-                                        <div class="bg-gray-800 rounded-lg p-4 mb-6">
-                                            <h4 class="text-white font-semibold mb-3">✨ Pro Benefits:</h4>
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                                        <div class="bg-gray-800 rounded-lg p-3 mb-4">
+                                            <h4 class="text-white font-semibold mb-2 text-sm">✨ Pro Benefits:</h4>
+                                            <div class="grid grid-cols-2 gap-1 text-xs">
                                                 <div class="flex items-center text-green-400">
-                                                    <i class="fas fa-check mr-2"></i>Unlimited usage
+                                                    <i class="fas fa-check mr-1"></i>Unlimited usage
                                                 </div>
                                                 <div class="flex items-center text-green-400">
-                                                    <i class="fas fa-check mr-2"></i>All premium tools
+                                                    <i class="fas fa-check mr-1"></i>All premium tools
                                                 </div>
                                                 <div class="flex items-center text-green-400">
-                                                    <i class="fas fa-check mr-2"></i>Priority support
+                                                    <i class="fas fa-check mr-1"></i>Priority support
                                                 </div>
                                                 <div class="flex items-center text-green-400">
-                                                    <i class="fas fa-check mr-2"></i>Advanced features
+                                                    <i class="fas fa-check mr-1"></i>Advanced features
                                                 </div>
                                             </div>
                                         </div>
@@ -208,10 +208,6 @@
                                             <button onclick="window.location.href='/?upgrade=true'" 
                                                 class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:opacity-90 transition duration-200 shadow-lg transform hover:scale-105">
                                                 <i class="fas fa-crown mr-2"></i>Upgrade to Pro Now
-                                            </button>
-                                            <button onclick="closeAiResults()" 
-                                                class="w-full bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition duration-200">
-                                                <i class="fas fa-times mr-2"></i>Close
                                             </button>
                                         </div>
                                     </div>
