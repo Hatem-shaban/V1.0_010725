@@ -169,6 +169,12 @@ class StartupStackAI {
                     
                     data = await response.json();
                     
+                    // Handle free trial limits silently (no console errors)
+                    if (data.isLimit || data.errorType === 'FREE_TRIAL_LIMIT') {
+                        // Free trial limit reached - handle gracefully without console errors
+                        throw new Error(data.error || 'Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!');
+                    }
+                    
                     if (response.ok && !data.error) {
                         // Success, break out of retry loop
                         break;
@@ -208,6 +214,10 @@ class StartupStackAI {
             }
               // Final check for errors after retries
             if (!response.ok || data.error) {
+                // Handle free trial limits gracefully
+                if (data.isLimit || data.errorType === 'FREE_TRIAL_LIMIT') {
+                    throw new Error(data.error || 'Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!');
+                }
                 throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
             

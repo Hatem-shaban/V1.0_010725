@@ -218,10 +218,12 @@ exports.handler = async (event, context) => {
 
                         if (!opsError && operations && operations.length >= 1) {
                             return {
-                                statusCode: 429, // Too Many Requests
+                                statusCode: 200, // Return 200 to avoid console errors
                                 headers,
                                 body: JSON.stringify({
-                                    error: 'Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!'
+                                    error: 'Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!',
+                                    errorType: 'FREE_TRIAL_LIMIT',
+                                    isLimit: true
                                 })
                             };
                         }
@@ -230,9 +232,13 @@ exports.handler = async (event, context) => {
                     // Re-throw usage limit errors, but don't block for other database errors
                     if (limitError.message && limitError.message.includes('Free trial limit')) {
                         return {
-                            statusCode: 429,
+                            statusCode: 200, // Return 200 to avoid console errors
                             headers,
-                            body: JSON.stringify({ error: limitError.message })
+                            body: JSON.stringify({ 
+                                error: limitError.message,
+                                errorType: 'FREE_TRIAL_LIMIT',
+                                isLimit: true
+                            })
                         };
                     }
                     // Silent fail for other database errors - continue with operation
