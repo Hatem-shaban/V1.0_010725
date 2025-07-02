@@ -169,11 +169,42 @@
                         if (loadingIndicator && resultsContent) {
                             loadingIndicator.classList.add('hidden');
                             resultsContent.classList.remove('hidden');
-                            resultsContent.textContent = 'Error: ' + error.message;
+                            
+                            // Check if it's a free trial limit error
+                            if (error.message.includes('Free trial limit')) {
+                                resultsContent.innerHTML = `
+                                    <div class="text-center py-8">
+                                        <div class="mb-4">
+                                            <i class="fas fa-lock text-4xl text-orange-400 mb-4"></i>
+                                            <h3 class="text-xl font-bold text-orange-400 mb-2">Free Trial Limit Reached</h3>
+                                            <p class="text-gray-300 mb-6">You've used this AI tool once today. Free trial users can use each tool once per day.</p>
+                                        </div>
+                                        <div class="space-y-3">
+                                            <button onclick="window.location.href='/?upgrade=true'" 
+                                                class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition duration-200">
+                                                <i class="fas fa-crown mr-2"></i>Upgrade to Pro - Unlimited Usage
+                                            </button>
+                                            <button onclick="closeAiResults()" 
+                                                class="w-full bg-gray-600 text-white py-2 px-6 rounded-lg hover:bg-gray-700 transition duration-200">
+                                                Close
+                                            </button>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-4">Come back tomorrow to use this tool again for free!</p>
+                                    </div>
+                                `;
+                            } else {
+                                resultsContent.textContent = 'Error: ' + error.message;
+                            }
                         }
                         
-                        // Show error notification
-                        alert('Error generating ' + toolTitle + ': ' + error.message);
+                        // Show different notifications based on error type
+                        if (error.message.includes('Free trial limit')) {
+                            // Don't show alert for limit errors since we show upgrade modal
+                            console.log('Free trial limit reached for', toolTitle);
+                        } else {
+                            // Show error notification for other errors
+                            alert('Error generating ' + toolTitle + ': ' + error.message);
+                        }
                     }
                 });
             });
@@ -349,7 +380,7 @@
             </div>
         </nav>
 
-        <!-- Upgrade Banner - Only visible for basic plan -->
+        <!-- Upgrade Banner for Basic Plans -->
         <div id="upgradeBanner" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-4 hidden">
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center mb-3 md:mb-0">
@@ -358,6 +389,22 @@
                 </div>
                 <a href="/?upgrade=true" class="bg-white text-purple-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                     Upgrade Now
+                </a>
+            </div>
+        </div>
+
+        <!-- Free Trial Upgrade Banner -->
+        <div id="freeTrialBanner" class="bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-4 hidden">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-3 md:mb-0">
+                    <i class="fas fa-clock text-yellow-300 mr-3 text-lg"></i>
+                    <div>
+                        <p class="font-semibold">Free Trial - Limited Usage</p>
+                        <p class="text-sm opacity-90">Each AI tool can be used once per day. Upgrade for unlimited access!</p>
+                    </div>
+                </div>
+                <a href="/?upgrade=true" class="bg-white text-orange-700 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold">
+                    <i class="fas fa-crown mr-2"></i>Upgrade to Pro
                 </a>
             </div>
         </div>
@@ -1089,13 +1136,20 @@
         
         // Handle upgrade banner visibility
         const upgradeBanner = document.getElementById('upgradeBanner');
-        if (upgradeBanner) {
-            // Show for free trial and basic plans
-            if (planType === 'basic' || subscriptionStatus === 'free_trial' || !planType) {
-                upgradeBanner.classList.remove('hidden');
-            } else {
-                upgradeBanner.classList.add('hidden');
-            }
+        const freeTrialBanner = document.getElementById('freeTrialBanner');
+        
+        if (subscriptionStatus === 'free_trial') {
+            // Show free trial banner for trial users
+            if (freeTrialBanner) freeTrialBanner.classList.remove('hidden');
+            if (upgradeBanner) upgradeBanner.classList.add('hidden');
+        } else if (planType === 'basic' || !planType) {
+            // Show regular upgrade banner for basic plans
+            if (upgradeBanner) upgradeBanner.classList.remove('hidden');
+            if (freeTrialBanner) freeTrialBanner.classList.add('hidden');
+        } else {
+            // Hide both banners for premium plans
+            if (upgradeBanner) upgradeBanner.classList.add('hidden');
+            if (freeTrialBanner) freeTrialBanner.classList.add('hidden');
         }
         
         // Handle feature availability based on plan

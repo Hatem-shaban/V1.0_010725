@@ -706,6 +706,14 @@
             const mode = urlParams.has('auth') && urlParams.get('auth') === 'signup' ? 'signup' : 'login';
             window.openAuthModal(mode);
         }
+        
+        // Handle upgrade parameter - scroll to pricing section
+        if (urlParams.has('upgrade')) {
+            setTimeout(() => {
+                scrollToPrice();
+                showNotification('Choose a plan to upgrade your account', 'info');
+            }, 500);
+        }
     });
     
     // Using the globally defined showNotification function

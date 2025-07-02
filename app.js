@@ -82,12 +82,12 @@ class StartupStackAI {
         this.userManager = userManager;
     }
 
-    async checkUsageLimits(userId) {
+    async checkUsageLimits(userId, operation) {
         if (!userId) return; // Skip check if no user ID
         
         try {
             // Get user subscription status
-            const { data: user, error: userError } = await this.userManager.supabase
+            const { data: user, error: userError } = await supabase
                 .from('users')
                 .select('subscription_status, created_at')
                 .eq('id', userId)
@@ -100,12 +100,13 @@ class StartupStackAI {
 
             // Only check limits for free trial users
             if (user.subscription_status === 'free_trial') {
-                // Count today's operations for this user
+                // Count today's operations for this specific tool for this user
                 const today = new Date().toISOString().split('T')[0];
-                const { data: operations, error: opsError } = await this.userManager.supabase
+                const { data: operations, error: opsError } = await supabase
                     .from('operation_history')
-                    .select('id')
+                    .select('id, operation_type')
                     .eq('user_id', userId)
+                    .eq('operation_type', operation)
                     .gte('created_at', today + 'T00:00:00.000Z')
                     .lt('created_at', today + 'T23:59:59.999Z');
 
@@ -118,7 +119,7 @@ class StartupStackAI {
                 const FREE_TRIAL_LIMIT = 1; // One use per tool per day
 
                 if (usageCount >= FREE_TRIAL_LIMIT) {
-                    throw new Error('Free trial limit reached. You can use each AI tool once per day. Upgrade to unlock unlimited usage.');
+                    throw new Error(`Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!`);
                 }
             }
         } catch (error) {
@@ -136,7 +137,7 @@ class StartupStackAI {
             const userId = localStorage.getItem('userId');
             
             // Check if user is on free trial and has usage limits
-            await this.checkUsageLimits(userId);
+            await this.checkUsageLimits(userId, operation);
             
             // Implement a simple retry mechanism
             let attempts = 0;
