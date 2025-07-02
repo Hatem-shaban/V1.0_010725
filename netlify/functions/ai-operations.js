@@ -2,28 +2,6 @@
 const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
-// OpenAI client initialization using environment variable
-// The API key is securely stored in Netlify environment variables
-const openai = new OpenAI({
-    // apiKey will automatically use process.env.OPENAI_API_KEY if not specified
-    timeout: 30000, // 30 seconds timeout
-    maxRetries: 3   // Automatic retries on certain errors
-});
-
-// Initialize Supabase with service role key to bypass RLS
-// Use service role key for server operations that need to bypass RLS policies
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    serviceKey,
-    {
-        auth: {
-            persistSession: false
-        }
-    }
-);
-
 exports.handler = async (event, context) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -35,7 +13,8 @@ exports.handler = async (event, context) => {
         return { statusCode: 200, headers };
     }
 
-    try {        if (event.httpMethod !== 'POST') {
+    try {
+        if (event.httpMethod !== 'POST') {
             throw new Error('Method not allowed');
         }
 
@@ -105,14 +84,36 @@ exports.handler = async (event, context) => {
                 break;
             default:
                 throw new Error('Invalid operation type');
-        }// Check for API key only when needed (not exposing it in logs)
+        }
+        
+        // Check for API key only when needed (not exposing it in logs)
         if (!process.env.OPENAI_API_KEY) {
             throw new Error('Server configuration error: API key not available');
         }
         
+        // Initialize OpenAI client when needed
+        const openai = new OpenAI({
+            // apiKey will automatically use process.env.OPENAI_API_KEY if not specified
+            timeout: 30000, // 30 seconds timeout
+            maxRetries: 3   // Automatic retries on certain errors
+        });
+        
+        // Initialize Supabase with service role key to bypass RLS
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+        const supabase = createClient(
+            process.env.SUPABASE_URL,
+            serviceKey,
+            {
+                auth: {
+                    persistSession: false
+                }
+            }
+        );
+        
         // Using the new OpenAI SDK syntax
         let completion;
-        try {            // Set different parameters based on operation type
+        try {
+            // Set different parameters based on operation type
             const operationSettings = {
                 generateBusinessNames: { temperature: 0.9, max_tokens: 300 },   // More creative
                 generateEmailTemplates: { temperature: 0.5, max_tokens: 600 },  // More structured
@@ -219,7 +220,9 @@ exports.handler = async (event, context) => {
             
             // Don't log the full error object as it might contain the API key
             throw new Error(`OpenAI API Error: ${openaiError.message || 'Unknown error'}`);
-        }if (!completion || !completion.choices || completion.choices.length === 0) {
+        }
+        
+        if (!completion || !completion.choices || completion.choices.length === 0) {
             throw new Error('No response from OpenAI API');
         }
         
