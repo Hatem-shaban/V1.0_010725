@@ -116,13 +116,16 @@ class StartupStackAI {
                 
                 // Get today's date in UTC and create proper date boundaries
                 const now = new Date();
-                const todayUTC = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+                // Create proper UTC date boundaries (not affected by local timezone)
+                const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
                 const tomorrowUTC = new Date(todayUTC);
                 tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
                 
                 console.log('Checking usage limits for:', {
                     userId,
                     operation,
+                    currentUTCDate: now.toISOString().split('T')[0],
+                    localTimezoneOffset: now.getTimezoneOffset(),
                     todayStart: todayUTC.toISOString(),
                     tomorrowStart: tomorrowUTC.toISOString()
                 });
