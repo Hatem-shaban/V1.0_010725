@@ -1,6 +1,6 @@
 // Service Worker for StartupStack Performance Optimization
-const CACHE_NAME = 'startupstack-v1.0.1';
-const STATIC_CACHE_NAME = 'startupstack-static-v1.0.1';
+const CACHE_NAME = 'startupstack-v1.0.2';
+const STATIC_CACHE_NAME = 'startupstack-static-v1.0.2';
 
 // Static assets to cache
 const STATIC_ASSETS = [
