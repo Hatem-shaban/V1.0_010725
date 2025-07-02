@@ -15,13 +15,32 @@ exports.handler = async (event, context) => {
 
     try {
         if (event.httpMethod !== 'POST') {
-            throw new Error('Method not allowed');
+            return {
+                statusCode: 405,
+                headers,
+                body: JSON.stringify({ error: 'Method not allowed' })
+            };
         }
 
-        const { operation, params, userId } = JSON.parse(event.body);
+        let requestBody;
+        try {
+            requestBody = JSON.parse(event.body || '{}');
+        } catch (parseError) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid JSON in request body' })
+            };
+        }
+
+        const { operation, params, userId } = requestBody;
 
         if (!operation) {
-            throw new Error('Operation type is required');
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Operation type is required' })
+            };
         }        // Validate required parameters for each operation
         const requiredParams = {
             generateBusinessNames: ['industry', 'keywords'],
@@ -40,7 +59,13 @@ exports.handler = async (event, context) => {
         if (requiredParams[operation]) {
             const missing = requiredParams[operation].filter(param => !params || params[param] === undefined);
             if (missing.length > 0) {
-                throw new Error(`Missing required parameters: ${missing.join(', ')} for operation ${operation}`);
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: `Missing required parameters: ${missing.join(', ')} for operation ${operation}`
+                    })
+                };
             }
         }
 
@@ -83,32 +108,70 @@ exports.handler = async (event, context) => {
                 userPrompt = `Create a financial projection for ${params.business} over the next ${params.timeframe}. ${params.keywordsMore ? 'Additional financial factors to consider: ' + params.keywordsMore : ''} ${params.additionalContext ? 'Additional context: ' + params.additionalContext : ''} Include revenue streams, expenses, and growth assumptions.`;
                 break;
             default:
-                throw new Error('Invalid operation type');
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: `Operation not supported: ${operation}`,
+                        supportedOperations: [
+                            'generateBusinessNames', 
+                            'generateEmailTemplates', 
+                            'generateLogo', 
+                            'generatePitchDeck', 
+                            'analyzeMarket',
+                            'generateContentCalendar',
+                            'generateLegalDocs',
+                            'generateFinancials'
+                        ]
+                    })
+                };
         }
         
         // Check for API key only when needed (not exposing it in logs)
         if (!process.env.OPENAI_API_KEY) {
-            throw new Error('Server configuration error: API key not available');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Server configuration error: API key not available' })
+            };
         }
         
         // Initialize OpenAI client when needed
-        const openai = new OpenAI({
-            // apiKey will automatically use process.env.OPENAI_API_KEY if not specified
-            timeout: 30000, // 30 seconds timeout
-            maxRetries: 3   // Automatic retries on certain errors
-        });
+        let openai;
+        try {
+            openai = new OpenAI({
+                // apiKey will automatically use process.env.OPENAI_API_KEY if not specified
+                timeout: 30000, // 30 seconds timeout
+                maxRetries: 3   // Automatic retries on certain errors
+            });
+        } catch (initError) {
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to initialize OpenAI client' })
+            };
+        }
         
         // Initialize Supabase with service role key to bypass RLS
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-        const supabase = createClient(
-            process.env.SUPABASE_URL,
-            serviceKey,
-            {
-                auth: {
-                    persistSession: false
+        let supabase;
+        try {
+            const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+            supabase = createClient(
+                process.env.SUPABASE_URL,
+                serviceKey,
+                {
+                    auth: {
+                        persistSession: false
+                    }
                 }
-            }
-        );
+            );
+        } catch (supabaseError) {
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to initialize database connection' })
+            };
+        }
         
         // Using the new OpenAI SDK syntax
         let completion;
@@ -154,15 +217,25 @@ exports.handler = async (event, context) => {
                             .lt('created_at', tomorrowUTC.toISOString());
 
                         if (!opsError && operations && operations.length >= 1) {
-                            throw new Error('Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!');
+                            return {
+                                statusCode: 429, // Too Many Requests
+                                headers,
+                                body: JSON.stringify({
+                                    error: 'Free trial limit reached for this tool today. You can use each AI tool once per day. Upgrade to unlock unlimited usage!'
+                                })
+                            };
                         }
                     }
                 } catch (limitError) {
                     // Re-throw usage limit errors, but don't block for other database errors
-                    if (limitError.message.includes('Free trial limit')) {
-                        throw limitError;
+                    if (limitError.message && limitError.message.includes('Free trial limit')) {
+                        return {
+                            statusCode: 429,
+                            headers,
+                            body: JSON.stringify({ error: limitError.message })
+                        };
                     }
-                    // Silent fail for other database errors
+                    // Silent fail for other database errors - continue with operation
                 }
             }
             
@@ -175,6 +248,15 @@ exports.handler = async (event, context) => {
                 temperature: settings.temperature,
                 max_tokens: settings.max_tokens
             });
+            
+            // Validate completion response
+            if (!completion || !completion.choices || completion.choices.length === 0) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ error: 'No response from AI service' })
+                };
+            }
             
             // Extract the result from completion
             const result = completion.choices[0].message.content;
@@ -209,47 +291,38 @@ exports.handler = async (event, context) => {
                 })
             };
         } catch (openaiError) {
-            // More detailed error logging for timeouts and network issues
+            // Handle specific OpenAI errors gracefully
             if (openaiError.name === 'AbortError') {
-                throw new Error('Request to AI service timed out. Please try again.');
+                return {
+                    statusCode: 408, // Request Timeout
+                    headers,
+                    body: JSON.stringify({ error: 'Request to AI service timed out. Please try again.' })
+                };
             }
             
             if (openaiError.name === 'FetchError') {
-                throw new Error('Network error connecting to AI service. Please check your connection.');
+                return {
+                    statusCode: 503, // Service Unavailable
+                    headers,
+                    body: JSON.stringify({ error: 'Network error connecting to AI service. Please check your connection.' })
+                };
             }
             
-            // Don't log the full error object as it might contain the API key
-            throw new Error(`OpenAI API Error: ${openaiError.message || 'Unknown error'}`);
-        }
-    } catch (error) {
-        // Provide a more specific error code and message for invalid operations
-        if (error.message === 'Invalid operation type') {
+            // Generic OpenAI error
             return {
-                statusCode: 400, // Bad request is more appropriate for invalid operations
+                statusCode: 500,
                 headers,
-                body: JSON.stringify({
-                    error: `Operation not supported: ${JSON.parse(event.body).operation}`,
-                    supportedOperations: [
-                      'generateBusinessNames', 
-                      'generateEmailTemplates', 
-                      'generateLogo', 
-                      'generatePitchDeck', 
-                      'analyzeMarket',
-                      'generateContentCalendar',
-                      'generateLegalDocs',
-                      'generateFinancials'
-                    ],
-                    details: 'Please check the operation type passed to the API'
-                })
+                body: JSON.stringify({ error: `AI service error: ${openaiError.message || 'Unknown error'}` })
             };
         }
-        
+    } catch (error) {
+        // Final catch-all for any unhandled errors
         return {
-            statusCode: error.response?.status || 500,
+            statusCode: 500,
             headers,
             body: JSON.stringify({
                 error: error.message || 'Internal server error',
-                details: error.response?.data || null
+                details: 'An unexpected error occurred'
             })
         };
     }
